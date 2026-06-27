@@ -142,7 +142,7 @@
       <div class="row between" style="margin-bottom:6px"><strong id="m-title">Nuevo gasto</strong><button id="m-close" class="del" style="font-size:20px">✕</button></div>
       <div class="grid">
         <input class="full" type="text" inputmode="decimal" id="q-monto" placeholder="Monto ($)  ej: 13500">
-        <input class="full" type="text" id="q-desc" placeholder="Descripción  ej: Cancha de fútbol">
+        <input class="full" type="text" id="q-desc" placeholder="Descripción">
         <select id="q-cat"></select>
         <input type="date" id="q-fecha">
       </div>
@@ -362,7 +362,7 @@ function renderPersonas(){
   if(!P.personas.length){ h+=`<div class="empty" style="padding:8px">Agregá a los participantes de este proyecto.</div>`; }
   else { h+= P.personas.map((p,i)=>`<div class="person-row"><span class="swatch" style="background:${PCOL[i%PCOL.length]}"></span>
       <input data-pid="${p.id}" value="${esc(p.n)}"><button class="del del-p" data-id="${p.id}">🗑</button></div>`).join(""); }
-  h+=`<div class="row" style="gap:8px;margin-top:6px"><input id="np" type="text" placeholder="Nombre (ej: Gina)">
+  h+=`<div class="row" style="gap:8px;margin-top:6px">        <input id="np" type="text" placeholder="Nombre">
         <button class="btn btn-add" id="addp" style="width:auto;padding:10px 16px">＋</button></div></div>`;
   $("content").innerHTML=h;
   $("content").querySelectorAll("[data-pid]").forEach(el=>el.onchange=()=>{ const p=proy().personas.find(x=>x.id===el.dataset.pid); if(p){ p.n=el.value.trim()||p.n; persist(); render(); } });
@@ -454,7 +454,7 @@ function exportarFoto(){
   ctx.fillStyle="#0f172a"; ctx.fillRect(0,0,W,H);
   ctx.fillStyle="#10b981"; ctx.fillRect(0,0,W,6);
   ctx.textBaseline="alphabetic";
-  ctx.fillStyle="#f1f5f9"; ctx.font="700 30px system-ui,sans-serif"; ctx.fillText("💸 "+P.n, padX, 72);
+  ctx.fillStyle="#f1f5f9"; ctx.font="700 30px system-ui,sans-serif"; ctx.fillText(P.n, padX, 72);
   ctx.fillStyle="#64748b"; ctx.font="400 16px system-ui,sans-serif"; ctx.fillText("Quién le paga a quién · "+new Date().toLocaleDateString("es-AR"), padX, 100);
   ctx.fillStyle="#1e293b"; ctx.fillRect(padX,128,W-padX*2,1);
 
@@ -491,7 +491,7 @@ function exportarFoto(){
 document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{ vista=t.dataset.v; render(); });
 $("exportBtn").onclick=exportar;
 $("projSel").onchange=()=>{ st.activo=$("projSel").value; persist(); vista="resumen"; render(); };
-$("projNew").onclick=()=>{ const n=prompt("Nombre del nuevo proyecto:","Fútbol 5"); if(n===null) return; const nuevo={id:newId(),n:n.trim()||"Proyecto",personas:[],gastos:[],liquidaciones:[]}; st.proyectos.push(nuevo); st.activo=nuevo.id; persist(); vista="personas"; render(); };
+$("projNew").onclick=()=>{ const n=prompt("Nombre del nuevo proyecto:"); if(n===null) return; const nuevo={id:newId(),n:n.trim()||"Proyecto",personas:[],gastos:[],liquidaciones:[]}; st.proyectos.push(nuevo); st.activo=nuevo.id; persist(); vista="personas"; render(); };
 $("fab").onclick=()=>abrirModal(null);
 $("m-close").onclick=cerrarModal;
 $("modal").onclick=e=>{ if(e.target.id==="modal") cerrarModal(); };
