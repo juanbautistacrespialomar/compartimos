@@ -510,6 +510,11 @@ $("q-add").onclick=()=>{
 };
 
 render();
+
+// Limpieza automática de versiones viejas que usaban service worker.
+// Desregistra el SW y borra SUS caches, pero NO toca tus datos (el localStorage queda intacto).
+if("serviceWorker" in navigator){ navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{}); }
+if(window.caches && caches.keys){ caches.keys().then(ks=>ks.forEach(k=>caches.delete(k))).catch(()=>{}); }
 </script>
 </body>
 </html>
