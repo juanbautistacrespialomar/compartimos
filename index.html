@@ -446,39 +446,82 @@ function exportar(){
 /* ---------- export FOTO (canvas, sin librerías) ---------- */
 function exportarFoto(){
   const P=proy(); const {bal,total}=computar(); const pagos=liquidar(bal);
-  const sc=2, W=720, padX=44, headH=170, rowH=78, footH=66;
-  const bodyH = pagos.length ? pagos.length*rowH : 120;
-  const H = headH + bodyH + footH;
+  // datos de la torta: gastos por categoría
+  const m={}; P.gastos.forEach(g=>m[g.cat]=(m[g.cat]||0)+g.monto);
+  const tdata=Object.entries(m).map(([k,v])=>({name:k,value:v,color:CCOL[k]||"#64748b"})).sort((a,b)=>b.value-a.value);
+  const ttotal=tdata.reduce((s,x)=>s+x.value,0);
+
+  const sc=2, W=720, padX=44, rowH=70;
+  const headH=150, pagosTitleH=44, sepH=28, gastosTitleH=44, footH=72;
+  const pagosH = pagos.length ? pagos.length*rowH : 56;
+  const donaH = Math.max(200, tdata.length*32 + 18);
+  const H = headH + pagosTitleH + pagosH + sepH + gastosTitleH + donaH + footH;
+
   const cv=document.createElement("canvas"); cv.width=W*sc; cv.height=H*sc;
   const ctx=cv.getContext("2d"); ctx.scale(sc,sc);
   ctx.fillStyle="#0f172a"; ctx.fillRect(0,0,W,H);
   ctx.fillStyle="#10b981"; ctx.fillRect(0,0,W,6);
+
+  // header
   ctx.textBaseline="alphabetic";
-  ctx.fillStyle="#f1f5f9"; ctx.font="700 30px system-ui,sans-serif"; ctx.fillText(P.n, padX, 72);
-  ctx.fillStyle="#64748b"; ctx.font="400 16px system-ui,sans-serif"; ctx.fillText("Quién le paga a quién · "+new Date().toLocaleDateString("es-AR"), padX, 100);
-  ctx.fillStyle="#1e293b"; ctx.fillRect(padX,128,W-padX*2,1);
+  ctx.fillStyle="#f1f5f9"; ctx.font="700 30px system-ui,sans-serif"; ctx.fillText(P.n, padX, 64);
+  ctx.fillStyle="#64748b"; ctx.font="400 15px system-ui,sans-serif"; ctx.fillText(new Date().toLocaleDateString("es-AR"), padX, 92);
+  ctx.fillStyle="#1e293b"; ctx.fillRect(padX,116,W-padX*2,1);
 
   let y=headH;
+
+  // ---- sección: quién le paga a quién ----
+  ctx.textBaseline="alphabetic"; ctx.fillStyle="#cbd5e1"; ctx.font="700 18px system-ui,sans-serif";
+  ctx.fillText("Quién le paga a quién", padX, y+10);
+  y+=pagosTitleH;
   if(!pagos.length){
-    ctx.fillStyle="#10b981"; ctx.font="600 22px system-ui,sans-serif"; ctx.fillText("✓ Están todos a mano. Nadie debe nada.", padX, y+30);
+    ctx.fillStyle="#10b981"; ctx.font="600 18px system-ui,sans-serif"; ctx.textBaseline="middle";
+    ctx.fillText("Están todos a mano. Nadie debe nada.", padX, y+28);
   } else {
     pagos.forEach(p=>{
-      const cy=y+rowH/2; ctx.textBaseline="middle";
-      let x=padX;
+      const cy=y+rowH/2; ctx.textBaseline="middle"; let x=padX;
       ctx.fillStyle=pColor(p.de); ctx.beginPath(); ctx.arc(x+7,cy,7,0,Math.PI*2); ctx.fill(); x+=22;
-      ctx.fillStyle="#f1f5f9"; ctx.font="600 19px system-ui,sans-serif"; ctx.fillText(pName(p.de),x,cy); x+=ctx.measureText(pName(p.de)).width+14;
-      ctx.strokeStyle="#475569"; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x,cy); ctx.lineTo(x+24,cy); ctx.stroke();
-      ctx.fillStyle="#475569"; ctx.beginPath(); ctx.moveTo(x+24,cy); ctx.lineTo(x+18,cy-5); ctx.lineTo(x+18,cy+5); ctx.fill(); x+=38;
+      ctx.fillStyle="#f1f5f9"; ctx.font="600 18px system-ui,sans-serif"; ctx.fillText(pName(p.de),x,cy); x+=ctx.measureText(pName(p.de)).width+12;
+      ctx.strokeStyle="#475569"; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x,cy); ctx.lineTo(x+22,cy); ctx.stroke();
+      ctx.fillStyle="#475569"; ctx.beginPath(); ctx.moveTo(x+22,cy); ctx.lineTo(x+16,cy-5); ctx.lineTo(x+16,cy+5); ctx.fill(); x+=34;
       ctx.fillStyle=pColor(p.a); ctx.beginPath(); ctx.arc(x+7,cy,7,0,Math.PI*2); ctx.fill(); x+=22;
-      ctx.fillStyle="#f1f5f9"; ctx.font="600 19px system-ui,sans-serif"; ctx.fillText(pName(p.a),x,cy);
-      ctx.fillStyle="#10b981"; ctx.font="700 20px system-ui,sans-serif"; ctx.textAlign="right"; ctx.fillText(fmt(p.monto), W-padX, cy); ctx.textAlign="left";
+      ctx.fillStyle="#f1f5f9"; ctx.font="600 18px system-ui,sans-serif"; ctx.fillText(pName(p.a),x,cy);
+      ctx.fillStyle="#10b981"; ctx.font="700 19px system-ui,sans-serif"; ctx.textAlign="right"; ctx.fillText(fmt(p.monto), W-padX, cy); ctx.textAlign="left";
       ctx.fillStyle="#16202e"; ctx.fillRect(padX, y+rowH-1, W-padX*2, 1);
       y+=rowH;
     });
   }
-  const fy=H-footH; ctx.textBaseline="middle"; ctx.fillStyle="#64748b"; ctx.font="400 15px system-ui,sans-serif";
-  ctx.fillText("Total del grupo: "+fmt(total), padX, fy+26);
-  ctx.textAlign="right"; ctx.fillText("Dividir Gastos", W-padX, fy+26); ctx.textAlign="left";
+  y+=sepH;
+
+  // ---- sección: en qué se gastó (dona + leyenda) ----
+  ctx.textBaseline="alphabetic"; ctx.fillStyle="#cbd5e1"; ctx.font="700 18px system-ui,sans-serif";
+  ctx.fillText("En qué se gastó", padX, y+10);
+  y+=gastosTitleH;
+  const cx=padX+90, cyD=y+donaH/2-8, rOut=82, rIn=51;
+  if(ttotal>0){
+    let ang=-Math.PI/2;
+    tdata.forEach(d=>{ const slice=(d.value/ttotal)*Math.PI*2;
+      ctx.beginPath(); ctx.moveTo(cx,cyD); ctx.arc(cx,cyD,rOut,ang,ang+slice); ctx.closePath(); ctx.fillStyle=d.color; ctx.fill(); ang+=slice; });
+    ctx.beginPath(); ctx.arc(cx,cyD,rIn,0,Math.PI*2); ctx.fillStyle="#0f172a"; ctx.fill();
+    ctx.fillStyle="#94a3b8"; ctx.font="400 12px system-ui,sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText("Total", cx, cyD-10);
+    ctx.fillStyle="#f1f5f9"; ctx.font="700 16px system-ui,sans-serif"; ctx.fillText(fmt(ttotal), cx, cyD+8); ctx.textAlign="left";
+  }
+  let ly=y+8; const lx=padX+205;
+  ctx.textBaseline="middle";
+  tdata.forEach(d=>{
+    ctx.fillStyle=d.color; ctx.fillRect(lx, ly+5, 14, 14);
+    ctx.fillStyle="#e2e8f0"; ctx.font="500 15px system-ui,sans-serif"; ctx.textAlign="left"; ctx.fillText(d.name, lx+24, ly+12);
+    const pct = ttotal? Math.round(d.value/ttotal*100):0;
+    ctx.fillStyle="#94a3b8"; ctx.font="600 15px system-ui,sans-serif"; ctx.textAlign="right"; ctx.fillText(fmt(d.value)+"  ("+pct+"%)", W-padX, ly+12); ctx.textAlign="left";
+    ly+=32;
+  });
+  y+=donaH;
+
+  // footer
+  const fy=H-footH; ctx.fillStyle="#1e293b"; ctx.fillRect(padX, fy, W-padX*2, 1);
+  ctx.textBaseline="middle"; ctx.fillStyle="#64748b"; ctx.font="400 15px system-ui,sans-serif"; ctx.textAlign="left";
+  ctx.fillText("Total del grupo: "+fmt(total), padX, fy+40);
+  ctx.textAlign="right"; ctx.fillText("Dividir Gastos", W-padX, fy+40); ctx.textAlign="left";
 
   cv.toBlob(async (blob)=>{
     const file=new File([blob], "gastos_"+P.n.replace(/[^\w]+/g,"_")+".png", {type:"image/png"});
