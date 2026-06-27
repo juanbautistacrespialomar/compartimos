@@ -318,7 +318,7 @@ function renderResumen(bal,total){
 
   $("content").innerHTML =
     `<div class="panel"><div class="row between" style="margin-bottom:8px"><p class="ptitle" style="margin:0">💳 Quién le transfiere a quién</p>
-        <button class="btn btn-ghost mini" id="fotoBtn">📷 Foto</button></div>${flechas}
+        <button class="btn btn-ghost mini" id="fotoBtn">📷 Compartir imagen</button></div>${flechas}
        ${pagos.length?`<p style="font-size:11px;color:var(--muted);margin:8px 2px 0">Combinado en las menos transferencias posibles (${pagos.length}).</p>`:""}</div>
      ${hechos}
      <div class="panel"><p class="ptitle">⚖️ Balances</p>${filas}
