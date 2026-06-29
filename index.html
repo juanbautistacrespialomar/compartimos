@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Dividir Gastos</title>
+<title>Compartimos</title>
 <meta name="theme-color" content="#020617">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="Dividir Gastos">
+<meta name="apple-mobile-web-app-title" content="Compartimos">
 <link rel="icon" href="Logo.png">
 <link rel="apple-touch-icon" href="Logo.png">
 <link rel="manifest" href="manifest.json">
@@ -120,7 +120,7 @@
   <div class="row between header">
     <div class="row" style="gap:8px">
       <img class="logo" src="Logo.png" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'💸',style:'font-size:22px'}))">
-      <h1>Dividir Gastos</h1>
+      <h1>Compartimos</h1>
     </div>
     <button class="btn btn-ghost" id="exportBtn">⤓ CSV</button>
   </div>
@@ -134,7 +134,7 @@
   <div class="cards" id="cards"></div>
 
   <div id="content"></div>
-  <p class="foot">Dividir Gastos v3 · tus datos se guardan en este dispositivo.</p>
+  <p class="foot">Compartimos v3 · tus datos se guardan en este dispositivo.</p>
 </div>
 
 <nav class="bottomnav">
@@ -541,7 +541,7 @@ function exportarFoto(){
   const fy=H-footH; ctx.fillStyle="#1e293b"; ctx.fillRect(padX, fy, W-padX*2, 1);
   ctx.textBaseline="middle"; ctx.fillStyle="#64748b"; ctx.font="400 15px system-ui,sans-serif"; ctx.textAlign="left";
   ctx.fillText("Total del grupo: "+fmt(total), padX, fy+40);
-  ctx.textAlign="right"; ctx.fillText("Dividir Gastos", W-padX, fy+40); ctx.textAlign="left";
+  ctx.textAlign="right"; ctx.fillText("Compartimos", W-padX, fy+40); ctx.textAlign="left";
 
   cv.toBlob(async (blob)=>{
     const file=new File([blob], "gastos_"+P.n.replace(/[^\w]+/g,"_")+".png", {type:"image/png"});
