@@ -1,4 +1,4 @@
-# 💸 Dividir Gastos
+# 💸 Compartimos
 
 App web para dividir gastos en grupo (estilo "quién puso qué") y calcular
 automáticamente **quién le tiene que transferir a quién**, minimizando la
