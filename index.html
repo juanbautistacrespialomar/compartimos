@@ -18,8 +18,8 @@
     --txt:#f1f5f9; --muted:#64748b; --green:#10b981; --amber:#f59e0b; --sky:#38bdf8; --red:#f87171; --violet:#a855f7;
   }
   html,body { margin:0; background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
-  body { padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
-  .wrap { max-width:600px; margin:0 auto; padding:16px; }
+  body { padding: env(safe-area-inset-top) 0 0; }
+  .wrap { max-width:600px; margin:0 auto; padding:16px 16px calc(80px + env(safe-area-inset-bottom)); }
   .row { display:flex; align-items:center; }
   .between { justify-content:space-between; }
   h1 { font-size:20px; margin:0; }
@@ -36,9 +36,16 @@
   .c { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:11px; }
   .c .lab { font-size:11px; color:var(--muted); margin-bottom:4px; }
   .c .val { font-size:15px; font-weight:700; }
-  .tabs { display:flex; gap:4px; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:4px; margin-bottom:14px; }
-  .tab { flex:1; padding:9px 4px; border-radius:9px; text-align:center; font-size:13px; font-weight:500; color:var(--muted); background:none; border:none; cursor:pointer; }
-  .tab.active { background:var(--card2); color:#fff; }
+  .bottomnav { position:fixed; left:0; right:0; bottom:0; z-index:50; background:var(--card2); border-top:1px solid var(--border); padding-bottom:env(safe-area-inset-bottom); }
+  .bottomnav-inner { max-width:600px; margin:0 auto; display:flex; position:relative; }
+  .tab { flex:1; position:relative; display:flex; flex-direction:column; align-items:center; gap:3px; padding:9px 4px 8px; background:none; border:none; cursor:pointer; color:var(--muted); font:inherit; font-size:10px; font-weight:600; letter-spacing:.03em; text-transform:uppercase; transition:color .25s; }
+  .tab svg { width:22px; height:22px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .tab.active { color:var(--amber); }
+  .tabind { position:absolute; top:0; left:0; width:25%; height:3px; display:flex; justify-content:center; transition:transform .32s cubic-bezier(.34,1.4,.5,1); pointer-events:none; }
+  .tabind::before { content:""; width:42px; height:3px; border-radius:0 0 3px 3px; background:var(--amber); }
+  @keyframes tabpop { 0%{transform:scale(1)} 40%{transform:scale(1.28)} 100%{transform:scale(1)} }
+  @keyframes viewin { from{opacity:0; transform:translateY(9px)} to{opacity:1; transform:none} }
+  @media (prefers-reduced-motion: reduce){ .tabind{transition:none} .tab svg{animation:none !important} #content{animation:none !important} }
   .panel { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px; margin-bottom:12px; }
   .panel .ptitle { font-size:14px; font-weight:600; color:#cbd5e1; margin:0 0 10px; }
   .item { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:11px 12px; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
@@ -97,7 +104,7 @@
   .legend-row { display:flex; align-items:center; justify-content:space-between; font-size:14px; padding:4px 0; }
   .dot { width:12px; height:12px; border-radius:3px; display:inline-block; margin-right:8px; vertical-align:-1px; }
   .pct { color:var(--muted); }
-  #fab { position:fixed; right:18px; bottom:22px; width:56px; height:56px; border-radius:50%; background:var(--green); color:#fff; font-size:30px; line-height:54px; text-align:center; border:none; box-shadow:0 6px 20px rgba(0,0,0,.45); cursor:pointer; z-index:50; }
+  #fab { position:fixed; right:18px; bottom:calc(80px + env(safe-area-inset-bottom)); width:56px; height:56px; border-radius:50%; background:var(--green); color:#fff; font-size:30px; line-height:54px; text-align:center; border:none; box-shadow:0 6px 20px rgba(0,0,0,.45); cursor:pointer; z-index:51; }
   #fab:active { background:#059669; }
   .modal-bg { position:fixed; inset:0; background:rgba(2,6,23,.7); display:none; align-items:flex-end; justify-content:center; z-index:60; }
   .modal-bg.open { display:flex; }
@@ -124,13 +131,6 @@
   </div>
 
   <div class="cards" id="cards"></div>
-
-  <div class="tabs" id="tabs">
-    <button class="tab active" data-v="resumen">Resumen</button>
-    <button class="tab" data-v="gastos">Gastos</button>
-    <button class="tab" data-v="personas">Personas</button>
-    <button class="tab" data-v="ajustes">Ajustes</button>
-  </div>
 
   <div id="content"></div>
   <p class="foot">Dividir Gastos v3 · tus datos se guardan en este dispositivo.</p>
@@ -162,6 +162,16 @@
   </div>
 </div>
 
+<nav class="bottomnav">
+  <div class="bottomnav-inner" id="tabs">
+    <button class="tab active" data-v="resumen"><svg viewBox="0 0 24 24"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg><span>Resumen</span></button>
+    <button class="tab" data-v="gastos"><svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span>Gastos</span></button>
+    <button class="tab" data-v="personas"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Personas</span></button>
+    <button class="tab" data-v="ajustes"><svg viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="10" y1="8" x2="14" y2="8"/><line x1="18" y1="16" x2="22" y2="16"/></svg><span>Ajustes</span></button>
+    <div class="tabind" id="tabInd"></div>
+  </div>
+</nav>
+
 <script>
 "use strict";
 const CATS = ["Cancha","Comida","Bebida","Supermercado","Transporte","Entradas","Alojamiento","Servicios","Regalos","Otros"];
@@ -192,7 +202,7 @@ function norm(s){
 }
 
 let st = norm(load(KEY,null)); save(KEY,st);
-let vista="resumen", editId=null, draftPart=null, draftPag=null, modoTorta="cat";
+let vista="resumen", vistaPrev="resumen", editId=null, draftPart=null, draftPag=null, modoTorta="cat";
 
 const $ = id => document.getElementById(id);
 const fmt = n => new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(Math.round(n)||0);
@@ -257,7 +267,9 @@ function renderProjBar(){ $("projSel").innerHTML = st.proyectos.map(p=>`<option 
 
 function render(){
   renderProjBar();
+  const _orden=["resumen","gastos","personas","ajustes"], _idx=_orden.indexOf(vista), _cambioVista=vista!==vistaPrev;
   document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.v===vista));
+  if(_idx>=0) $("tabInd").style.transform="translateX("+(_idx*100)+"%)";
   const {bal,total}=computar(); const P=proy();
   const prom = P.gastos.length ? total/Math.max(P.personas.length,1) : 0;
   $("cards").innerHTML =
@@ -268,6 +280,13 @@ function render(){
   else if(vista==="gastos") renderGastos();
   else if(vista==="personas") renderPersonas();
   else renderAjustes();
+
+  if(_cambioVista){
+    const _ic=document.querySelector(".tab.active svg");
+    if(_ic){ _ic.style.animation="none"; void _ic.offsetWidth; _ic.style.animation="tabpop .35s ease"; }
+    const _ct=$("content"); _ct.style.animation="none"; void _ct.offsetWidth; _ct.style.animation="viewin .28s ease";
+  }
+  vistaPrev=vista;
 }
 
 function renderResumen(bal,total){
