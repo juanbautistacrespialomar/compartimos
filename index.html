@@ -126,9 +126,10 @@
   </div>
 
   <div class="row projbar">
-    <span style="font-size:18px;flex:none">📁</span>
+    <span id="projEmoji" style="font-size:18px;flex:none">📁</span>
     <select id="projSel"></select>
-    <button class="pnav" id="projNew" title="Nuevo proyecto">＋</button>
+    <button class="pnav" id="grupoBtn" title="Ajustes del grupo">⚙️</button>
+    <button class="pnav" id="projNew" title="Nuevo grupo">＋</button>
   </div>
 
   <div class="cards" id="cards"></div>
@@ -139,9 +140,10 @@
 
 <nav class="bottomnav">
   <div class="bottomnav-inner" id="tabs">
-    <button class="tab active" data-v="resumen"><svg viewBox="0 0 24 24"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg><span>Resumen</span></button>
-    <button class="tab" data-v="gastos"><svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span>Gastos</span></button>
-    <button class="tab" data-v="personas"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Personas</span></button>
+    <button class="tab active" data-v="gastos"><svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span>Gastos</span></button>
+    <button class="tab" data-v="resumen"><svg viewBox="0 0 24 24"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg><span>Resumen</span></button>
+    <button class="tab" data-v="saldos"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span>Saldos</span></button>
+    <button class="tab" data-v="liquidar"><svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><span>Liquidar</span></button>
     <button class="tab" data-v="ajustes"><svg viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="10" y1="8" x2="14" y2="8"/><line x1="18" y1="16" x2="22" y2="16"/></svg><span>Ajustes</span></button>
     <div class="tabind" id="tabInd"></div>
   </div>
@@ -173,6 +175,13 @@
   </div>
 </div>
 
+<div id="grupoModal" class="modal-bg">
+  <div class="modal">
+    <div class="row between" style="margin-bottom:10px"><strong>Ajustes del grupo</strong><button id="g-close" class="del" style="font-size:20px">✕</button></div>
+    <div id="grupoBody"></div>
+  </div>
+</div>
+
 <script>
 "use strict";
 const CATS = ["Cancha","Comida","Bebida","Supermercado","Transporte","Entradas","Alojamiento","Servicios","Regalos","Otros"];
@@ -197,7 +206,7 @@ function norm(s){
   }
   s.v=3;
   if(!s.proyectos.length) s.proyectos.push({id:newId(), n:"Mi grupo", personas:[], gastos:[], liquidaciones:[]});
-  s.proyectos.forEach(p=>{ if(!p.id)p.id=newId(); if(!p.n)p.n="Proyecto"; if(!Array.isArray(p.personas))p.personas=[]; if(!Array.isArray(p.gastos))p.gastos=[]; if(!Array.isArray(p.liquidaciones))p.liquidaciones=[]; if(!("remoto" in p))p.remoto=null; });
+  s.proyectos.forEach(p=>{ if(!p.id)p.id=newId(); if(!p.n)p.n="Proyecto"; if(!Array.isArray(p.personas))p.personas=[]; if(!Array.isArray(p.gastos))p.gastos=[]; if(!Array.isArray(p.liquidaciones))p.liquidaciones=[]; if(!("remoto" in p))p.remoto=null; if(!("emoji" in p))p.emoji=null; });
   if(!s.proyectos.some(p=>p.id===s.activo)) s.activo=s.proyectos[0].id;
   return s;
 }
@@ -302,7 +311,7 @@ function entrarPorLink(){
   fetchRemoto(g);   // bajo el estado inicial del grupo ya mismo
 }
 
-let vista="resumen", vistaPrev="resumen", editId=null, draftPart=null, draftPag=null, modoTorta="cat";
+let vista="gastos", vistaPrev="gastos", editId=null, draftPart=null, draftPag=null, modoTorta="cat";
 
 const $ = id => document.getElementById(id);
 const fmt = n => new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(Math.round(n)||0);
@@ -363,12 +372,13 @@ function donut(data,total){
 }
 
 /* ---------- render ---------- */
-function renderProjBar(){ $("projSel").innerHTML = st.proyectos.map(p=>`<option value="${p.id}" ${p.id===st.activo?"selected":""}>${esc(p.n)}</option>`).join(""); }
+function renderProjBar(){ $("projSel").innerHTML = st.proyectos.map(p=>`<option value="${p.id}" ${p.id===st.activo?"selected":""}>${esc(p.n)}</option>`).join(""); const P=proy(); if($("projEmoji")) $("projEmoji").textContent = P.emoji || "📁"; }
 
 function render(){
   renderProjBar();
-  const _orden=["resumen","gastos","personas","ajustes"], _idx=_orden.indexOf(vista), _cambioVista=vista!==vistaPrev;
+  const _orden=["gastos","resumen","saldos","liquidar","ajustes"], _idx=_orden.indexOf(vista), _cambioVista=vista!==vistaPrev;
   document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.v===vista));
+  $("tabInd").style.width=(100/_orden.length)+"%";
   if(_idx>=0) $("tabInd").style.transform="translateX("+(_idx*100)+"%)";
   const {bal,total}=computar(); const P=proy();
   const prom = P.gastos.length ? total/Math.max(P.personas.length,1) : 0;
@@ -376,9 +386,10 @@ function render(){
     `<div class="c"><div class="lab">Total</div><div class="val" style="color:var(--green)">${fmt(total)}</div></div>
      <div class="c"><div class="lab">Personas</div><div class="val">${P.personas.length}</div></div>
      <div class="c"><div class="lab">Promedio c/u</div><div class="val">${fmt(prom)}</div></div>`;
-  if(vista==="resumen") renderResumen(bal,total);
-  else if(vista==="gastos") renderGastos();
-  else if(vista==="personas") renderPersonas();
+  if(vista==="gastos") renderGastos();
+  else if(vista==="resumen") renderResumen(bal,total);
+  else if(vista==="saldos") renderSaldos(bal,total);
+  else if(vista==="liquidar") renderLiquidar(bal,total);
   else renderAjustes();
 
   if(_cambioVista){
@@ -391,9 +402,43 @@ function render(){
 
 function renderResumen(bal,total){
   const P=proy();
-  if(!P.personas.length){ $("content").innerHTML=`<div class="empty">Agregá personas a <b>${esc(P.n)}</b> en la pestaña <b>Personas</b>.</div>`; return; }
+  if(!P.personas.length){ $("content").innerHTML=`<div class="empty">Agregá personas al grupo <b>${esc(P.n)}</b> desde la ⚙️ de arriba.</div>`; return; }
   if(!P.gastos.length){ $("content").innerHTML=`<div class="empty">Todavía no cargaste gastos en <b>${esc(P.n)}</b>.<br>Tocá <b>＋</b> para el primero.</div>`; return; }
+  let tdata, ttotal;
+  if(modoTorta==="cat"){
+    const m={}; P.gastos.forEach(g=>m[g.cat]=(m[g.cat]||0)+g.monto);
+    tdata=Object.entries(m).map(([k,v])=>({name:k,value:v,color:CCOL[k]||"#64748b"})).sort((a,b)=>b.value-a.value);
+  } else {
+    const m={}; P.gastos.forEach(g=>m[g.pagador]=(m[g.pagador]||0)+g.monto);
+    tdata=Object.entries(m).map(([k,v])=>({name:pName(k),value:v,color:pColor(k)})).sort((a,b)=>b.value-a.value);
+  }
+  ttotal=tdata.reduce((s,x)=>s+x.value,0);
+  const leyenda=tdata.map(x=>`<div class="legend-row"><span><span class="dot" style="background:${x.color}"></span>${esc(x.name)}</span>
+    <span>${fmt(x.value)} <span class="pct">(${ttotal?((x.value/ttotal)*100).toFixed(0):0}%)</span></span></div>`).join("");
+  $("content").innerHTML =
+    `<div class="panel"><div class="row between" style="margin-bottom:10px"><p class="ptitle" style="margin:0">🥧 Gastos por rubro</p>
+        <div class="toggle" style="width:170px"><button data-t="cat" class="${modoTorta==='cat'?'on':''}">Categoría</button><button data-t="pag" class="${modoTorta==='pag'?'on':''}">Quién pagó</button></div></div>
+        ${donut(tdata,ttotal)}<div style="margin-top:8px">${leyenda}</div></div>`;
+  $("content").querySelectorAll(".toggle button").forEach(b=>b.onclick=()=>{ modoTorta=b.dataset.t; render(); });
+}
 
+function renderSaldos(bal,total){
+  const P=proy();
+  if(!P.personas.length){ $("content").innerHTML=`<div class="empty">Agregá personas al grupo <b>${esc(P.n)}</b> desde la ⚙️ de arriba.</div>`; return; }
+  const filas = P.personas.map(p=>({id:p.id, n:p.n, net:bal[p.id]||0})).sort((a,b)=>b.net-a.net)
+    .map(x=>{ const tag=x.net>0.5?"le deben":x.net<-0.5?"debe":"a mano"; const cls=x.net>0.5?"saldo-pos":x.net<-0.5?"saldo-neg":"";
+      return `<div class="bal"><div class="who"><span class="pdot" style="background:${pColor(x.id)}"></span><span>${esc(x.n)}</span></div>
+        <div class="net ${cls}">${fmt(Math.abs(x.net))}<span class="tag">${tag}</span></div></div>`; }).join("");
+  $("content").innerHTML =
+    `<div class="panel"><p class="ptitle">⚖️ Balances</p>${filas}
+       <p style="font-size:11px;color:var(--muted);margin:10px 2px 0">"Le deben" = puso de más · "Debe" = puso de menos.</p></div>
+     <div class="panel"><div class="row between"><span style="font-size:13px;color:var(--muted)">Total gastado del grupo</span><b style="color:var(--green);font-size:18px">${fmt(total)}</b></div></div>`;
+}
+
+function renderLiquidar(bal,total){
+  const P=proy();
+  if(!P.personas.length){ $("content").innerHTML=`<div class="empty">Agregá personas al grupo <b>${esc(P.n)}</b> desde la ⚙️ de arriba.</div>`; return; }
+  if(!P.gastos.length){ $("content").innerHTML=`<div class="empty">Todavía no hay gastos para liquidar en <b>${esc(P.n)}</b>.</div>`; return; }
   const pagos=liquidar(bal);
   let flechas = !pagos.length
     ? `<div class="settled">✓ Están todos a mano. Nadie le debe nada a nadie.</div>`
@@ -406,8 +451,6 @@ function renderResumen(bal,total){
           </div>
           <div class="pay-act"><button class="btn pay-done mini" data-de="${p.de}" data-a="${p.a}" data-m="${p.monto}">✓ Marcar como pagado</button></div>
         </div>`).join("");
-
-  // pagos ya registrados
   let hechos="";
   if((P.liquidaciones||[]).length){
     hechos = `<div class="panel"><p class="ptitle">✅ Pagos ya hechos</p>` +
@@ -415,37 +458,11 @@ function renderResumen(bal,total){
         <span><span class="pdot" style="background:${pColor(l.de)};display:inline-block;vertical-align:-1px"></span> ${esc(pName(l.de))} → ${esc(pName(l.a))} · <b style="color:#cbd5e1">${fmt(l.monto)}</b> <span style="color:#475569">${fechaCorta(l.fecha)}</span></span>
         <button class="undo" data-undo="${l.id}">↩ deshacer</button></div>`).join("") + `</div>`;
   }
-
-  // balances
-  const filas = P.personas.map(p=>({id:p.id, n:p.n, net:bal[p.id]||0})).sort((a,b)=>b.net-a.net)
-    .map(x=>{ const tag=x.net>0.5?"le deben":x.net<-0.5?"debe":"a mano"; const cls=x.net>0.5?"saldo-pos":x.net<-0.5?"saldo-neg":"";
-      return `<div class="bal"><div class="who"><span class="pdot" style="background:${pColor(x.id)}"></span><span>${esc(x.n)}</span></div>
-        <div class="net ${cls}">${fmt(Math.abs(x.net))}<span class="tag">${tag}</span></div></div>`; }).join("");
-
-  // torta
-  let tdata, ttotal;
-  if(modoTorta==="cat"){
-    const m={}; P.gastos.forEach(g=>m[g.cat]=(m[g.cat]||0)+g.monto);
-    tdata=Object.entries(m).map(([k,v])=>({name:k,value:v,color:CCOL[k]||"#64748b"})).sort((a,b)=>b.value-a.value);
-  } else {
-    const m={}; P.gastos.forEach(g=>m[g.pagador]=(m[g.pagador]||0)+g.monto);
-    tdata=Object.entries(m).map(([k,v])=>({name:pName(k),value:v,color:pColor(k)})).sort((a,b)=>b.value-a.value);
-  }
-  ttotal=tdata.reduce((s,x)=>s+x.value,0);
-  const leyenda=tdata.map(x=>`<div class="legend-row"><span><span class="dot" style="background:${x.color}"></span>${esc(x.name)}</span>
-    <span>${fmt(x.value)} <span class="pct">(${ttotal?((x.value/ttotal)*100).toFixed(0):0}%)</span></span></div>`).join("");
-
   $("content").innerHTML =
     `<div class="panel"><div class="row between" style="margin-bottom:8px"><p class="ptitle" style="margin:0">💳 Quién le transfiere a quién</p>
         <button class="btn btn-ghost mini" id="fotoBtn">📷 Compartir imagen</button></div>${flechas}
        ${pagos.length?`<p style="font-size:11px;color:var(--muted);margin:8px 2px 0">Combinado en las menos transferencias posibles (${pagos.length}).</p>`:""}</div>
-     ${hechos}
-     <div class="panel"><p class="ptitle">⚖️ Balances</p>${filas}
-       <p style="font-size:11px;color:var(--muted);margin:10px 2px 0">"Le deben" = puso de más · "Debe" = puso de menos.</p></div>
-     <div class="panel"><div class="row between" style="margin-bottom:10px"><p class="ptitle" style="margin:0">🥧 Gastos</p>
-        <div class="toggle" style="width:170px"><button data-t="cat" class="${modoTorta==='cat'?'on':''}">Categoría</button><button data-t="pag" class="${modoTorta==='pag'?'on':''}">Quién pagó</button></div></div>
-        ${donut(tdata,ttotal)}<div style="margin-top:8px">${leyenda}</div></div>`;
-
+     ${hechos}`;
   $("fotoBtn").onclick=exportarFoto;
   $("content").querySelectorAll(".pay-done").forEach(b=>b.onclick=()=>{
     const Pl=proy(); const nl={id:newId(), de:b.dataset.de, a:b.dataset.a, monto:+b.dataset.m, fecha:hoy()}; Pl.liquidaciones.push(nl);
@@ -455,7 +472,6 @@ function renderResumen(bal,total){
   $("content").querySelectorAll("[data-undo]").forEach(b=>b.onclick=()=>{
     const P=proy(); sync(P,"DELETE","/p/"+P.id+"/liquidacion/"+b.dataset.undo); P.liquidaciones=P.liquidaciones.filter(l=>l.id!==b.dataset.undo); persist(); render();
   });
-  $("content").querySelectorAll(".toggle button").forEach(b=>b.onclick=()=>{ modoTorta=b.dataset.t; render(); });
 }
 
 function renderGastos(){
@@ -476,29 +492,52 @@ function renderGastos(){
   $("content").querySelectorAll(".del-g").forEach(b=>b.onclick=e=>{ e.stopPropagation(); if(confirm("¿Borrar este gasto?")){ const P=proy(); sync(P,"DELETE","/p/"+P.id+"/gasto/"+b.dataset.id); P.gastos=P.gastos.filter(x=>x.id!==b.dataset.id); persist(); render(); } });
 }
 
-function renderPersonas(){
+const EMOJIS = ["📁","💰","🍕","🍻","✈️","🏠","🎉","⚽","🏖️","🎂","🚗","🛒","🎸","☕","🍔","🏔️"];
+function renderGrupoModal(){
   const P=proy();
-  let h=`<div class="panel"><p class="ptitle">👥 Personas en ${esc(P.n)}</p>`;
-  if(!P.personas.length){ h+=`<div class="empty" style="padding:8px">Agregá a los participantes de este proyecto.</div>`; }
-  else { h+= P.personas.map((p,i)=>`<div class="person-row"><span class="swatch" style="background:${PCOL[i%PCOL.length]}"></span>
-      <input data-pid="${p.id}" value="${esc(p.n)}"><button class="del del-p" data-id="${p.id}">🗑</button></div>`).join(""); }
-  h+=`<div class="row" style="gap:8px;margin-top:6px">        <input id="np" type="text" placeholder="Nombre">
-        <button class="btn btn-add" id="addp" style="width:auto;padding:10px 16px">＋</button></div></div>`;
-  $("content").innerHTML=h;
-  $("content").querySelectorAll("[data-pid]").forEach(el=>el.onchange=()=>{ const p=proy().personas.find(x=>x.id===el.dataset.pid); if(p){ p.n=el.value.trim()||p.n; const P=proy(); sync(P,"DELETE","/p/"+P.id+"/persona/"+p.id); sync(P,"POST","/p/"+P.id+"/persona",{id:p.id, nombre:p.n}); persist(); render(); } });
-  $("content").querySelectorAll(".del-p").forEach(b=>b.onclick=()=>{
+  const emojisHtml = EMOJIS.map(e=>{ const sel=(P.emoji||"📁")===e;
+    return `<button class="emoji-pick" data-emoji="${e}" style="font-size:20px;width:42px;height:42px;border-radius:10px;border:1px solid ${sel?'var(--amber)':'var(--border)'};background:${sel?'rgba(245,158,11,.15)':'transparent'};cursor:pointer">${e}</button>`; }).join("");
+  const personasHtml = !P.personas.length
+    ? `<div class="empty" style="padding:8px">Agregá a los participantes del grupo.</div>`
+    : P.personas.map((p,i)=>`<div class="person-row"><span class="swatch" style="background:${PCOL[i%PCOL.length]}"></span>
+        <input data-pid="${p.id}" value="${esc(p.n)}"><button class="del del-p" data-id="${p.id}">🗑</button></div>`).join("");
+  const compartirHtml = P.remoto
+    ? `<p style="font-size:12px;color:var(--muted);margin-bottom:8px">Grupo compartido. Pasales este link a tus amigos:</p>
+       <input id="linkGrupo" readonly value="${esc(linkGrupo(P))}" style="margin-bottom:8px;font-size:12px">
+       <button class="btn btn-ghost" id="copiarLink">📋 Copiar link</button>`
+    : `<p style="font-size:12px;color:var(--muted);margin-bottom:8px">Subilo a la nube para que tus amigos carguen gastos con vos.</p>
+       <button class="btn btn-ghost" id="compartirBtn">🔗 Compartir con amigos</button>`;
+  $("grupoBody").innerHTML =
+    `<label style="font-size:11px;color:var(--muted)">Nombre del grupo</label>
+     <input id="g-nombre" value="${esc(P.n)}" style="margin:5px 0 12px">
+     <label style="font-size:11px;color:var(--muted)">Emoji del grupo</label>
+     <div style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 14px">${emojisHtml}</div>
+     <label style="font-size:11px;color:var(--muted)">Personas</label>
+     <div style="margin:6px 0 4px">${personasHtml}</div>
+     <div class="row" style="gap:8px;margin-bottom:16px"><input id="np" type="text" placeholder="Nombre"><button class="btn btn-add" id="addp" style="width:auto;padding:10px 16px">＋</button></div>
+     <label style="font-size:11px;color:var(--muted)">🔗 Compartir</label>
+     <div style="margin-top:6px">${compartirHtml}</div>`;
+
+  $("g-nombre").onchange=()=>{ const v=$("g-nombre").value.trim(); if(v){ proy().n=v; persist(); render(); renderGrupoModal(); } };
+  $("grupoBody").querySelectorAll(".emoji-pick").forEach(b=>b.onclick=()=>{ proy().emoji=b.dataset.emoji; persist(); render(); renderGrupoModal(); });
+  $("grupoBody").querySelectorAll("[data-pid]").forEach(el=>el.onchange=()=>{ const p=proy().personas.find(x=>x.id===el.dataset.pid); if(p){ p.n=el.value.trim()||p.n; const P=proy(); sync(P,"DELETE","/p/"+P.id+"/persona/"+p.id); sync(P,"POST","/p/"+P.id+"/persona",{id:p.id, nombre:p.n}); persist(); render(); renderGrupoModal(); } });
+  $("grupoBody").querySelectorAll(".del-p").forEach(b=>b.onclick=()=>{
     const P=proy();
     const usado = P.gastos.some(g=>g.pagador===b.dataset.id||(g.part||[]).includes(b.dataset.id)) || (P.liquidaciones||[]).some(l=>l.de===b.dataset.id||l.a===b.dataset.id);
-    if(usado && !confirm("Esta persona aparece en gastos o pagos de este proyecto. Si la borrás, se la quita. ¿Seguir?")) return;
+    if(usado && !confirm("Esta persona aparece en gastos o pagos. Si la borrás, se la quita. ¿Seguir?")) return;
     sync(P,"DELETE","/p/"+P.id+"/persona/"+b.dataset.id);
     P.personas=P.personas.filter(x=>x.id!==b.dataset.id);
     P.gastos.forEach(g=>{ g.part=(g.part||[]).filter(id=>id!==b.dataset.id); });
     P.liquidaciones=(P.liquidaciones||[]).filter(l=>l.de!==b.dataset.id&&l.a!==b.dataset.id);
-    persist(); render();
+    persist(); render(); renderGrupoModal();
   });
-  const add=()=>{ const v=$("np").value.trim(); if(!v) return; const P=proy(); const np={id:newId(), n:v}; P.personas.push(np); sync(P,"POST","/p/"+P.id+"/persona",{id:np.id, nombre:np.n}); persist(); render(); setTimeout(()=>{const n=$("np"); if(n)n.focus();},0); };
+  const add=()=>{ const v=$("np").value.trim(); if(!v) return; const P=proy(); const np={id:newId(), n:v}; P.personas.push(np); sync(P,"POST","/p/"+P.id+"/persona",{id:np.id, nombre:np.n}); persist(); render(); renderGrupoModal(); setTimeout(()=>{const n=$("np"); if(n)n.focus();},0); };
   $("addp").onclick=add; $("np").addEventListener("keydown",e=>{ if(e.key==="Enter") add(); });
+  if($("compartirBtn")) $("compartirBtn").onclick=async()=>{ await compartirProyecto(); renderGrupoModal(); };
+  if($("copiarLink")) $("copiarLink").onclick=()=>{ const i=$("linkGrupo"); i.select(); i.setSelectionRange(0,9999); try{navigator.clipboard.writeText(i.value);}catch(e){document.execCommand("copy");} alert("Link copiado ✓"); };
 }
+function abrirGrupo(){ renderGrupoModal(); $("grupoModal").classList.add("open"); }
+function cerrarGrupo(){ $("grupoModal").classList.remove("open"); }
 
 function renderAjustes(){
   const P=proy();
@@ -507,15 +546,7 @@ function renderAjustes(){
        <label style="font-size:11px;color:var(--muted)">Nombre</label>
        <input id="projName" value="${esc(P.n)}" style="margin:5px 0 10px">
        <button class="btn btn-ghost" id="projDup" style="margin-bottom:8px">⧉ Duplicar (mismas personas, sin gastos)</button>
-       <button class="btn btn-ghost danger" id="projDel">🗑 Borrar este proyecto</button></div>
-     <div class="panel"><p class="ptitle">🔗 Compartir</p>
-       ${P.remoto
-         ? `<p style="font-size:12px;color:var(--muted);margin-bottom:8px">Este proyecto está compartido. Pasales este link a tus amigos:</p>
-            <input id="linkGrupo" readonly value="${esc(linkGrupo(P))}" style="margin-bottom:8px;font-size:12px">
-            <button class="btn btn-ghost" id="copiarLink">📋 Copiar link</button>`
-         : `<p style="font-size:12px;color:var(--muted);margin-bottom:8px">Subilo a la nube para que tus amigos carguen gastos junto con vos.</p>
-            <button class="btn btn-ghost" id="compartirBtn">🔗 Compartir con amigos</button>`}
-     </div>
+       <button class="btn btn-ghost danger" id="projDel">🗑 Borrar este grupo</button></div>
      <div class="panel"><p class="ptitle">⚙️ Datos y backup</p>
        <button class="btn btn-ghost" id="backup" style="margin-bottom:8px">⬇️ Descargar backup (todos los proyectos)</button>
        <button class="btn btn-ghost" id="importBtn" style="margin-bottom:8px">⬆️ Restaurar desde backup</button>
@@ -523,10 +554,8 @@ function renderAjustes(){
        <button class="btn btn-ghost danger" id="reset">↺ Borrar TODO y empezar de cero</button>
        <p style="font-size:11px;color:var(--muted);margin:8px 0 0">El backup guarda todos los proyectos en un archivo JSON.</p></div>`;
   $("projName").onchange=()=>{ const v=$("projName").value.trim(); if(v){ proy().n=v; persist(); render(); } };
-  $("projDup").onclick=()=>{ const src=proy(); const nuevo={id:newId(), n:src.n+" (copia)", personas:src.personas.map(p=>({...p})), gastos:[], liquidaciones:[]}; st.proyectos.push(nuevo); st.activo=nuevo.id; persist(); vista="personas"; render(); };
+  $("projDup").onclick=()=>{ const src=proy(); const nuevo={id:newId(), n:src.n+" (copia)", emoji:src.emoji, personas:src.personas.map(p=>({...p})), gastos:[], liquidaciones:[]}; st.proyectos.push(nuevo); st.activo=nuevo.id; persist(); vista="gastos"; render(); };
   $("projDel").onclick=()=>{ if(!confirm(`¿Borrar el proyecto "${P.n}" con todo adentro?`)) return; st.proyectos=st.proyectos.filter(p=>p.id!==P.id); if(!st.proyectos.length) st.proyectos.push({id:newId(),n:"Mi grupo",personas:[],gastos:[],liquidaciones:[]}); st.activo=st.proyectos[0].id; persist(); vista="resumen"; render(); };
-  if($("compartirBtn")) $("compartirBtn").onclick=compartirProyecto;
-  if($("copiarLink")) $("copiarLink").onclick=()=>{ const i=$("linkGrupo"); i.select(); i.setSelectionRange(0,9999); try{navigator.clipboard.writeText(i.value);}catch(e){document.execCommand("copy");} alert("Link copiado ✓"); };
   $("backup").onclick=()=>{ const data={app:"DividirGastos",fecha:new Date().toISOString(),st}; const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"})); a.download="backup_dividir_"+hoy()+".json"; a.click(); URL.revokeObjectURL(a.href); };
   $("importBtn").onclick=()=>$("importFile").click();
   $("importFile").onchange=(e)=>{ const file=e.target.files[0]; if(!file) return; const r=new FileReader();
@@ -547,7 +576,7 @@ function pintarChips(){ $("q-chips").innerHTML=chipsHTML();
 function fillSelects(){ $("q-cat").innerHTML=CATS.map(c=>`<option>${c}</option>`).join(""); $("q-pagador").innerHTML=proy().personas.map(p=>`<option value="${p.id}">${esc(p.n)}</option>`).join(""); }
 function abrirModal(id){
   const P=proy();
-  if(!P.personas.length){ alert("Primero agregá personas a este proyecto."); vista="personas"; render(); return; }
+  if(!P.personas.length){ alert("Primero agregá personas al grupo (tocá la ⚙️ de arriba)."); abrirGrupo(); return; }
   fillSelects();
   if(id){ const g=P.gastos.find(x=>x.id===id); if(!g) return; editId=id; $("m-title").textContent="Editar gasto";
     $("q-monto").value=g.monto; $("q-desc").value=g.desc||""; $("q-cat").value=g.cat||"Otros"; $("q-fecha").value=g.fecha||hoy();
@@ -664,8 +693,11 @@ function exportarFoto(){
 /* ---------- eventos ---------- */
 document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{ vista=t.dataset.v; render(); });
 $("exportBtn").onclick=exportar;
-$("projSel").onchange=()=>{ st.activo=$("projSel").value; persist(); vista="resumen"; render(); };
-$("projNew").onclick=()=>{ const n=prompt("Nombre del nuevo proyecto:"); if(n===null) return; const nuevo={id:newId(),n:n.trim()||"Proyecto",personas:[],gastos:[],liquidaciones:[]}; st.proyectos.push(nuevo); st.activo=nuevo.id; persist(); vista="personas"; render(); };
+$("projSel").onchange=()=>{ st.activo=$("projSel").value; persist(); vista="gastos"; render(); };
+$("projNew").onclick=()=>{ const n=prompt("Nombre del nuevo grupo:"); if(n===null) return; const nuevo={id:newId(),n:n.trim()||"Grupo",emoji:null,personas:[],gastos:[],liquidaciones:[]}; st.proyectos.push(nuevo); st.activo=nuevo.id; persist(); vista="gastos"; render(); abrirGrupo(); };
+$("grupoBtn").onclick=abrirGrupo;
+$("g-close").onclick=cerrarGrupo;
+$("grupoModal").onclick=e=>{ if(e.target.id==="grupoModal") cerrarGrupo(); };
 $("fab").onclick=()=>abrirModal(null);
 $("m-close").onclick=cerrarModal;
 $("modal").onclick=e=>{ if(e.target.id==="modal") cerrarModal(); };
