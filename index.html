@@ -264,6 +264,43 @@ async function compartirProyecto(){
   }
 }
 
+// --- Leer del servidor con polling (Nivel 2): traer los cambios de los demás ---
+let ultimoRev = {};
+async function fetchRemoto(id){
+  try{
+    const r = await fetch(API+"/p/"+id);
+    if(!r.ok) return;
+    const data = await r.json();
+    const P = st.proyectos.find(p=>p.id===id);
+    if(!P || !data.proyecto) return;
+    if(ultimoRev[id] === data.proyecto.rev) return;   // nada cambió: no re-dibujo
+    ultimoRev[id] = data.proyecto.rev;
+    // El servidor es la verdad (ya subí todo lo mío): traigo y mapeo al formato local
+    P.n = data.proyecto.nombre;
+    P.personas = data.personas.map(x=>({id:x.id, n:x.nombre}));
+    P.gastos = data.gastos.map(x=>({id:x.id, monto:x.monto, desc:x.descripcion, cat:x.categoria, fecha:x.fecha, pagador:x.pagador, part:x.participantes||[]}));
+    P.liquidaciones = data.liquidaciones.map(x=>({id:x.id, de:x.de_persona, a:x.a_persona, monto:x.monto, fecha:x.fecha}));
+    persist(); render();
+  }catch(e){ /* sin señal o error puntual: reintenta en el próximo poll */ }
+}
+function pollActivo(){
+  const P = proy();
+  if(!P || !P.remoto) return;                                      // local puro: no pollea
+  if(cola.length) return;                                          // tengo cambios sin subir: espero, no piso
+  if(document.hidden) return;                                      // pestaña en segundo plano: ahorro
+  if($("modal") && $("modal").classList.contains("open")) return; // estás cargando algo: no interrumpo
+  fetchRemoto(P.id);
+}
+function entrarPorLink(){
+  const g = new URLSearchParams(location.search).get("g");
+  if(!g) return;
+  let P = st.proyectos.find(p=>p.id===g);
+  if(!P){ P={id:g, n:"Grupo compartido", remoto:g, personas:[], gastos:[], liquidaciones:[]}; st.proyectos.push(P); }
+  else { P.remoto = g; }
+  st.activo = g; persist();
+  fetchRemoto(g);   // bajo el estado inicial del grupo ya mismo
+}
+
 let vista="resumen", vistaPrev="resumen", editId=null, draftPart=null, draftPag=null, modoTorta="cat";
 
 const $ = id => document.getElementById(id);
@@ -648,8 +685,10 @@ $("q-add").onclick=()=>{
   persist(); cerrarModal(); vista="resumen"; render();
 };
 
+entrarPorLink();
 render();
 vaciarCola();
+setInterval(pollActivo, 2000);
 
 // PWA: registro del Service Worker (offline + instalable)
 if("serviceWorker" in navigator){
