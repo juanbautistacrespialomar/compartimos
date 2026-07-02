@@ -267,6 +267,7 @@ async function compartirProyecto(){
 // --- Leer del servidor con polling (Nivel 2): traer los cambios de los demás ---
 let ultimoRev = {};
 async function fetchRemoto(id){
+  if(cola.length) return;   // tengo cambios sin subir: no piso lo local, espero a que suba
   try{
     const r = await fetch(API+"/p/"+id);
     if(!r.ok) return;
