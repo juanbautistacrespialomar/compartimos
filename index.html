@@ -237,14 +237,19 @@ async function vaciarCola(){
         headers: {"Content-Type":"application/json"},
         body: op.method==="DELETE" ? undefined : JSON.stringify(op.body||{})
       });
-      if(!r.ok) throw new Error(op.path+" -> "+r.status);
+      if(!r.ok){ throw new Error("HTTP "+r.status+" al "+op.method+" "+op.path); }
       cola.shift(); save(KEY_COLA, cola);
     }
-  }catch(e){ /* falló: queda en la cola y reintenta más tarde */ }
+    alert("DIAG: sincronizado con el servidor OK ✓");
+  }catch(e){ alert("DIAG: FALLÓ al subir -> "+e.message); }
   finally{ vaciando = false; }
 }
 // Solo sincroniza si el proyecto está compartido; si es local puro, no hace nada.
-function sync(P, method, path, body){ if(P && P.remoto) encolar({method, path, body}); }
+function sync(P, method, path, body){
+  if(!P){ alert("DIAG: no hay proyecto activo"); return; }
+  if(!P.remoto){ alert("DIAG: este proyecto NO está marcado como compartido (id "+P.id+")"); return; }
+  encolar({method, path, body});
+}
 window.addEventListener("online", vaciarCola);
 
 function linkGrupo(P){ return location.origin+location.pathname+"?g="+P.id; }

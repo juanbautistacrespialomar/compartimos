@@ -3,7 +3,7 @@
    - Resto de assets: cache-first.
    Para forzar una actualización limpia, subí el número de versión del cache. */
 
-const CACHE = "compartimos-v2";
+const CACHE = "compartimos-v3";
 const ASSETS = [
   "./",
   "./index.html",
