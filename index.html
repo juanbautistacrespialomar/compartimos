@@ -220,6 +220,33 @@ async function apiPost(path, body){
   if(!r.ok) throw new Error("El servidor respondió "+r.status);
   return r.json();
 }
+
+// --- Cola de sincronización con reintento offline (Nivel B) ---
+const KEY_COLA = "compartimos.cola";
+let cola = load(KEY_COLA, []);
+let vaciando = false;
+function encolar(op){ cola.push(op); save(KEY_COLA, cola); vaciarCola(); }
+async function vaciarCola(){
+  if(vaciando || !cola.length || !navigator.onLine) return;
+  vaciando = true;
+  try{
+    while(cola.length){
+      const op = cola[0];
+      const r = await fetch(API+op.path, {
+        method: op.method,
+        headers: {"Content-Type":"application/json"},
+        body: op.method==="DELETE" ? undefined : JSON.stringify(op.body||{})
+      });
+      if(!r.ok) throw new Error(op.path+" -> "+r.status);
+      cola.shift(); save(KEY_COLA, cola);
+    }
+  }catch(e){ /* falló: queda en la cola y reintenta más tarde */ }
+  finally{ vaciando = false; }
+}
+// Solo sincroniza si el proyecto está compartido; si es local puro, no hace nada.
+function sync(P, method, path, body){ if(P && P.remoto) encolar({method, path, body}); }
+window.addEventListener("online", vaciarCola);
+
 function linkGrupo(P){ return location.origin+location.pathname+"?g="+P.id; }
 async function compartirProyecto(){
   const P=proy(), btn=$("compartirBtn");
@@ -232,7 +259,7 @@ async function compartirProyecto(){
     P.remoto=P.id; persist(); render();
     alert("¡Listo! Este proyecto ya está compartido. Pasales el link a tus amigos ✓");
   }catch(e){
-    alert("No se pudo compartir: "+e.message+"\nProbá de nuevo con conexión.");
+    alert("No se pudo compartir: "+e.message+". Probá de nuevo con conexión.");
     if(btn){ btn.disabled=false; btn.textContent="🔗 Compartir con amigos"; }
   }
 }
@@ -383,11 +410,12 @@ function renderResumen(bal,total){
 
   $("fotoBtn").onclick=exportarFoto;
   $("content").querySelectorAll(".pay-done").forEach(b=>b.onclick=()=>{
-    proy().liquidaciones.push({id:newId(), de:b.dataset.de, a:b.dataset.a, monto:+b.dataset.m, fecha:hoy()});
+    const Pl=proy(); const nl={id:newId(), de:b.dataset.de, a:b.dataset.a, monto:+b.dataset.m, fecha:hoy()}; Pl.liquidaciones.push(nl);
+    sync(Pl,"POST","/p/"+Pl.id+"/liquidacion",{id:nl.id, de_persona:nl.de, a_persona:nl.a, monto:nl.monto, fecha:nl.fecha});
     persist(); render();
   });
   $("content").querySelectorAll("[data-undo]").forEach(b=>b.onclick=()=>{
-    const P=proy(); P.liquidaciones=P.liquidaciones.filter(l=>l.id!==b.dataset.undo); persist(); render();
+    const P=proy(); sync(P,"DELETE","/p/"+P.id+"/liquidacion/"+b.dataset.undo); P.liquidaciones=P.liquidaciones.filter(l=>l.id!==b.dataset.undo); persist(); render();
   });
   $("content").querySelectorAll(".toggle button").forEach(b=>b.onclick=()=>{ modoTorta=b.dataset.t; render(); });
 }
@@ -407,7 +435,7 @@ function renderGastos(){
       <div style="display:flex;align-items:center;gap:6px"><span class="amt">${fmt(g.monto)}</span><button class="del del-g" data-id="${g.id}">🗑</button></div></div>`; }).join("");
   $("content").innerHTML=h;
   $("content").querySelectorAll(".item[data-edit]").forEach(el=>el.onclick=e=>{ if(e.target.closest(".del")) return; abrirModal(el.dataset.edit); });
-  $("content").querySelectorAll(".del-g").forEach(b=>b.onclick=e=>{ e.stopPropagation(); if(confirm("¿Borrar este gasto?")){ const P=proy(); P.gastos=P.gastos.filter(x=>x.id!==b.dataset.id); persist(); render(); } });
+  $("content").querySelectorAll(".del-g").forEach(b=>b.onclick=e=>{ e.stopPropagation(); if(confirm("¿Borrar este gasto?")){ const P=proy(); sync(P,"DELETE","/p/"+P.id+"/gasto/"+b.dataset.id); P.gastos=P.gastos.filter(x=>x.id!==b.dataset.id); persist(); render(); } });
 }
 
 function renderPersonas(){
@@ -419,17 +447,18 @@ function renderPersonas(){
   h+=`<div class="row" style="gap:8px;margin-top:6px">        <input id="np" type="text" placeholder="Nombre">
         <button class="btn btn-add" id="addp" style="width:auto;padding:10px 16px">＋</button></div></div>`;
   $("content").innerHTML=h;
-  $("content").querySelectorAll("[data-pid]").forEach(el=>el.onchange=()=>{ const p=proy().personas.find(x=>x.id===el.dataset.pid); if(p){ p.n=el.value.trim()||p.n; persist(); render(); } });
+  $("content").querySelectorAll("[data-pid]").forEach(el=>el.onchange=()=>{ const p=proy().personas.find(x=>x.id===el.dataset.pid); if(p){ p.n=el.value.trim()||p.n; const P=proy(); sync(P,"DELETE","/p/"+P.id+"/persona/"+p.id); sync(P,"POST","/p/"+P.id+"/persona",{id:p.id, nombre:p.n}); persist(); render(); } });
   $("content").querySelectorAll(".del-p").forEach(b=>b.onclick=()=>{
     const P=proy();
     const usado = P.gastos.some(g=>g.pagador===b.dataset.id||(g.part||[]).includes(b.dataset.id)) || (P.liquidaciones||[]).some(l=>l.de===b.dataset.id||l.a===b.dataset.id);
     if(usado && !confirm("Esta persona aparece en gastos o pagos de este proyecto. Si la borrás, se la quita. ¿Seguir?")) return;
+    sync(P,"DELETE","/p/"+P.id+"/persona/"+b.dataset.id);
     P.personas=P.personas.filter(x=>x.id!==b.dataset.id);
     P.gastos.forEach(g=>{ g.part=(g.part||[]).filter(id=>id!==b.dataset.id); });
     P.liquidaciones=(P.liquidaciones||[]).filter(l=>l.de!==b.dataset.id&&l.a!==b.dataset.id);
     persist(); render();
   });
-  const add=()=>{ const v=$("np").value.trim(); if(!v) return; proy().personas.push({id:newId(), n:v}); persist(); render(); setTimeout(()=>{const n=$("np"); if(n)n.focus();},0); };
+  const add=()=>{ const v=$("np").value.trim(); if(!v) return; const P=proy(); const np={id:newId(), n:v}; P.personas.push(np); sync(P,"POST","/p/"+P.id+"/persona",{id:np.id, nombre:np.n}); persist(); render(); setTimeout(()=>{const n=$("np"); if(n)n.focus();},0); };
   $("addp").onclick=add; $("np").addEventListener("keydown",e=>{ if(e.key==="Enter") add(); });
 }
 
@@ -611,12 +640,16 @@ $("q-add").onclick=()=>{
   if(!monto||monto<=0){ $("q-monto").focus(); return; }
   if(!draftPart.length){ alert("Tildá al menos una persona entre quienes se divide."); return; }
   const pag=$("q-pagador").value;
-  if(editId){ const g=P.gastos.find(x=>x.id===editId); if(g){ g.monto=monto; g.desc=$("q-desc").value.trim(); g.cat=$("q-cat").value; g.fecha=$("q-fecha").value||hoy(); g.pagador=pag; g.part=[...draftPart]; } }
-  else { P.gastos.unshift({id:newId(), monto, desc:$("q-desc").value.trim(), cat:$("q-cat").value, fecha:$("q-fecha").value||hoy(), pagador:pag, part:[...draftPart]}); }
+  if(editId){ const g=P.gastos.find(x=>x.id===editId); if(g){ g.monto=monto; g.desc=$("q-desc").value.trim(); g.cat=$("q-cat").value; g.fecha=$("q-fecha").value||hoy(); g.pagador=pag; g.part=[...draftPart];
+      sync(P,"DELETE","/p/"+P.id+"/gasto/"+g.id);
+      sync(P,"POST","/p/"+P.id+"/gasto",{id:g.id, monto:g.monto, descripcion:g.desc, categoria:g.cat, fecha:g.fecha, pagador:g.pagador, participantes:g.part}); } }
+  else { const ng={id:newId(), monto, desc:$("q-desc").value.trim(), cat:$("q-cat").value, fecha:$("q-fecha").value||hoy(), pagador:pag, part:[...draftPart]}; P.gastos.unshift(ng);
+      sync(P,"POST","/p/"+P.id+"/gasto",{id:ng.id, monto:ng.monto, descripcion:ng.desc, categoria:ng.cat, fecha:ng.fecha, pagador:ng.pagador, participantes:ng.part}); }
   persist(); cerrarModal(); vista="resumen"; render();
 };
 
 render();
+vaciarCola();
 
 // PWA: registro del Service Worker (offline + instalable)
 if("serviceWorker" in navigator){
