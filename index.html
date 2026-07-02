@@ -203,6 +203,16 @@ function norm(s){
 }
 
 let st = norm(load(KEY,null)); save(KEY,st);
+
+// --- Identidad liviana: quién soy en los grupos compartidos ---
+const KEY_YO = "compartimos.yo";
+let YO = load(KEY_YO, null);
+if(!YO || !YO.nombre){
+  let n = prompt("¿Cómo te llamás? (así tus amigos ven quién cargó cada gasto)");
+  YO = { id: newId(), nombre: (n||"").trim() || "Yo" };
+  save(KEY_YO, YO);
+}
+
 let vista="resumen", vistaPrev="resumen", editId=null, draftPart=null, draftPag=null, modoTorta="cat";
 
 const $ = id => document.getElementById(id);
