@@ -197,7 +197,7 @@ function norm(s){
   }
   s.v=3;
   if(!s.proyectos.length) s.proyectos.push({id:newId(), n:"Mi grupo", personas:[], gastos:[], liquidaciones:[]});
-  s.proyectos.forEach(p=>{ if(!p.id)p.id=newId(); if(!p.n)p.n="Proyecto"; if(!Array.isArray(p.personas))p.personas=[]; if(!Array.isArray(p.gastos))p.gastos=[]; if(!Array.isArray(p.liquidaciones))p.liquidaciones=[]; });
+  s.proyectos.forEach(p=>{ if(!p.id)p.id=newId(); if(!p.n)p.n="Proyecto"; if(!Array.isArray(p.personas))p.personas=[]; if(!Array.isArray(p.gastos))p.gastos=[]; if(!Array.isArray(p.liquidaciones))p.liquidaciones=[]; if(!("remoto" in p))p.remoto=null; });
   if(!s.proyectos.some(p=>p.id===s.activo)) s.activo=s.proyectos[0].id;
   return s;
 }
@@ -211,6 +211,30 @@ if(!YO || !YO.nombre){
   let n = prompt("¿Cómo te llamás? (así tus amigos ven quién cargó cada gasto)");
   YO = { id: newId(), nombre: (n||"").trim() || "Yo" };
   save(KEY_YO, YO);
+}
+
+// --- Conexión con el servidor (base D1 vía Worker) ---
+const API = "https://compartimos-api.juanbautistacrespialomar.workers.dev";
+async function apiPost(path, body){
+  const r = await fetch(API+path, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body||{})});
+  if(!r.ok) throw new Error("El servidor respondió "+r.status);
+  return r.json();
+}
+function linkGrupo(P){ return location.origin+location.pathname+"?g="+P.id; }
+async function compartirProyecto(){
+  const P=proy(), btn=$("compartirBtn");
+  try{
+    if(btn){ btn.disabled=true; btn.textContent="Compartiendo..."; }
+    await apiPost("/p/"+P.id, {nombre:P.n});
+    for(const per of P.personas) await apiPost("/p/"+P.id+"/persona", {id:per.id, nombre:per.n});
+    for(const g of P.gastos) await apiPost("/p/"+P.id+"/gasto", {id:g.id, monto:g.monto, descripcion:g.desc, categoria:g.cat, fecha:g.fecha, pagador:g.pagador, participantes:g.part});
+    for(const l of P.liquidaciones) await apiPost("/p/"+P.id+"/liquidacion", {id:l.id, de_persona:l.de, a_persona:l.a, monto:l.monto, fecha:l.fecha});
+    P.remoto=P.id; persist(); render();
+    alert("¡Listo! Este proyecto ya está compartido. Pasales el link a tus amigos ✓");
+  }catch(e){
+    alert("No se pudo compartir: "+e.message+"\nProbá de nuevo con conexión.");
+    if(btn){ btn.disabled=false; btn.textContent="🔗 Compartir con amigos"; }
+  }
 }
 
 let vista="resumen", vistaPrev="resumen", editId=null, draftPart=null, draftPag=null, modoTorta="cat";
@@ -417,6 +441,14 @@ function renderAjustes(){
        <input id="projName" value="${esc(P.n)}" style="margin:5px 0 10px">
        <button class="btn btn-ghost" id="projDup" style="margin-bottom:8px">⧉ Duplicar (mismas personas, sin gastos)</button>
        <button class="btn btn-ghost danger" id="projDel">🗑 Borrar este proyecto</button></div>
+     <div class="panel"><p class="ptitle">🔗 Compartir</p>
+       ${P.remoto
+         ? `<p style="font-size:12px;color:var(--muted);margin-bottom:8px">Este proyecto está compartido. Pasales este link a tus amigos:</p>
+            <input id="linkGrupo" readonly value="${esc(linkGrupo(P))}" style="margin-bottom:8px;font-size:12px">
+            <button class="btn btn-ghost" id="copiarLink">📋 Copiar link</button>`
+         : `<p style="font-size:12px;color:var(--muted);margin-bottom:8px">Subilo a la nube para que tus amigos carguen gastos junto con vos.</p>
+            <button class="btn btn-ghost" id="compartirBtn">🔗 Compartir con amigos</button>`}
+     </div>
      <div class="panel"><p class="ptitle">⚙️ Datos y backup</p>
        <button class="btn btn-ghost" id="backup" style="margin-bottom:8px">⬇️ Descargar backup (todos los proyectos)</button>
        <button class="btn btn-ghost" id="importBtn" style="margin-bottom:8px">⬆️ Restaurar desde backup</button>
@@ -426,6 +458,8 @@ function renderAjustes(){
   $("projName").onchange=()=>{ const v=$("projName").value.trim(); if(v){ proy().n=v; persist(); render(); } };
   $("projDup").onclick=()=>{ const src=proy(); const nuevo={id:newId(), n:src.n+" (copia)", personas:src.personas.map(p=>({...p})), gastos:[], liquidaciones:[]}; st.proyectos.push(nuevo); st.activo=nuevo.id; persist(); vista="personas"; render(); };
   $("projDel").onclick=()=>{ if(!confirm(`¿Borrar el proyecto "${P.n}" con todo adentro?`)) return; st.proyectos=st.proyectos.filter(p=>p.id!==P.id); if(!st.proyectos.length) st.proyectos.push({id:newId(),n:"Mi grupo",personas:[],gastos:[],liquidaciones:[]}); st.activo=st.proyectos[0].id; persist(); vista="resumen"; render(); };
+  if($("compartirBtn")) $("compartirBtn").onclick=compartirProyecto;
+  if($("copiarLink")) $("copiarLink").onclick=()=>{ const i=$("linkGrupo"); i.select(); i.setSelectionRange(0,9999); try{navigator.clipboard.writeText(i.value);}catch(e){document.execCommand("copy");} alert("Link copiado ✓"); };
   $("backup").onclick=()=>{ const data={app:"DividirGastos",fecha:new Date().toISOString(),st}; const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"})); a.download="backup_dividir_"+hoy()+".json"; a.click(); URL.revokeObjectURL(a.href); };
   $("importBtn").onclick=()=>$("importFile").click();
   $("importFile").onchange=(e)=>{ const file=e.target.files[0]; if(!file) return; const r=new FileReader();
