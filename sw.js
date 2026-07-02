@@ -3,7 +3,7 @@
    - Resto de assets: cache-first.
    Para forzar una actualización limpia, subí el número de versión del cache. */
 
-const CACHE = "compartimos-v3";
+const CACHE = "compartimos-v4";
 const ASSETS = [
   "./",
   "./index.html",
@@ -32,6 +32,11 @@ self.addEventListener("activate", e => {
 self.addEventListener("fetch", e => {
   const req = e.request;
   if (req.method !== "GET") return;
+
+  // Las llamadas al servidor de datos (otro dominio: el Worker/D1) NUNCA se cachean:
+  // siempre a la red, para tener datos en vivo. El cache es solo para los archivos de la app.
+  const url = new URL(req.url);
+  if (url.origin !== location.origin) return;
 
   if (req.mode === "navigate") {
     e.respondWith(
