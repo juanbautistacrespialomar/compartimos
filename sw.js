@@ -9,7 +9,7 @@
    │  A cada persona le va a aparecer el cartel "Hay versión nueva". │
    └───────────────────────────────────────────────────────────────┘ */
 
-const VERSION = "v14";
+const VERSION = "v16";
 const CACHE = "compartimos-" + VERSION;
 const ASSETS = [
   "./",

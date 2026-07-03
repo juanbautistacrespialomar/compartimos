@@ -456,13 +456,13 @@ function entrarPorLink(){
   fetchRemoto(g);   // bajo el estado inicial del grupo ya mismo
 }
 
-let vista="gastos", vistaPrev="gastos", editId=null, draftPart=null, draftPag=null, draftModo="igual", draftPesos={}, modoTorta="cat", actExpandida=false, verId=null;
+let vista="gastos", vistaPrev="gastos", editId=null, draftPart=null, draftPag=null, draftModo="igual", draftPesos={}, modoTorta="cat", actExpandida=false, verId=load("compartimos.verId",null);
 
 const $ = id => document.getElementById(id);
 const fmt = n => new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(Math.round(n)||0);
 const hoy = () => { const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
 function esc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
-function persist(){ save(KEY,st); }
+function persist(){ save(KEY,st); save("compartimos.verId",verId); }
 function proy(){ if(verId){ const v=st.proyectos.find(p=>p.id===verId); if(v) return v; } return st.proyectos.find(p=>p.id===st.activo) || st.proyectos[0]; }
 // Estás consultando un grupo liquidado: todo en modo solo lectura hasta reabrirlo.
 function soloLectura(){ const p=proy(); return !!verId && !!p && p.cerrado; }
@@ -855,7 +855,9 @@ function renderAjustes(){
        <p style="font-size:11px;color:var(--muted);margin:0 0 10px">No aparecen en el inicio. Tocá "Ver" para consultarlos; adentro podés reabrirlos si hace falta.</p>
        ${cerrados.map(p=>`<div class="person-row" style="justify-content:space-between">
           <span style="display:flex;align-items:center;gap:8px;min-width:0"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.n)}</span></span>
-          <button class="btn btn-ghost mini" data-ver="${p.id}">👁 Ver</button>
+          ${verId===p.id
+             ? `<button class="btn btn-ghost mini" data-dejarver="1" style="color:var(--amber)">✕ Dejar de ver</button>`
+             : `<button class="btn btn-ghost mini" data-ver="${p.id}">👁 Ver</button>`}
         </div>`).join("")}</div>`;
   $("content").innerHTML =
     `<div class="panel"><p class="ptitle">📁 Proyecto actual</p>
@@ -885,7 +887,8 @@ function renderAjustes(){
   const _pr=$("projReopen");
   if(_pr) _pr.onclick=()=>{ P.cerrado=false; st.activo=P.id; verId=null; persist(); vista="gastos"; render(); };
   $("projDel").onclick=()=>{ if(!confirm(`¿Borrar el proyecto "${P.n}" con todo adentro?`)) return; st.proyectos=st.proyectos.filter(p=>p.id!==P.id); if(!st.proyectos.some(p=>!p.cerrado)) st.proyectos.push({id:newCode(),n:"Mi grupo",emoji:null,cerrado:false,personas:[],gastos:[],liquidaciones:[]}); st.activo=st.proyectos.find(p=>!p.cerrado).id; verId=null; persist(); vista="gastos"; render(); };
-  $("content").querySelectorAll("[data-ver]").forEach(b=>b.onclick=()=>{ const p=st.proyectos.find(x=>x.id===b.dataset.ver); if(p){ verId=p.id; vista="gastos"; render(); } });
+  $("content").querySelectorAll("[data-ver]").forEach(b=>b.onclick=()=>{ const p=st.proyectos.find(x=>x.id===b.dataset.ver); if(p){ verId=p.id; vista="gastos"; persist(); render(); } });
+  $("content").querySelectorAll("[data-dejarver]").forEach(b=>b.onclick=()=>{ verId=null; persist(); render(); });
   $("backup").onclick=()=>{ const data={app:"DividirGastos",fecha:new Date().toISOString(),st}; const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"})); a.download="backup_dividir_"+hoy()+".json"; a.click(); URL.revokeObjectURL(a.href); };
   $("importBtn").onclick=()=>$("importFile").click();
   $("importFile").onchange=(e)=>{ const file=e.target.files[0]; if(!file) return; const r=new FileReader();
@@ -1126,9 +1129,7 @@ document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{ vista=t.dataset.v; 
 $("exportBtn").onclick=exportar;
 $("projSel").onchange=()=>{ verId=null; st.activo=$("projSel").value; persist(); vista="gastos"; render(); };
 $("heroReabrir").onclick=()=>{ const P=proy(); if(!P||!P.cerrado) return; if(!confirm(`¿Reabrir "${P.n}"? Vuelve a aparecer en el inicio y podés seguir cargando gastos.`)) return; P.cerrado=false; st.activo=P.id; verId=null; persist(); vista="gastos"; render(); };
-$("heroSalir").onclick=()=>{ verId=null; vista="gastos"; render(); };
-// Al minimizar/cerrar la app, el modo consulta se descarta: cuando volvés ves tus grupos activos, no el liquidado.
-document.addEventListener("visibilitychange", ()=>{ if(document.hidden && verId){ verId=null; vista="gastos"; render(); } });
+$("heroSalir").onclick=()=>{ verId=null; vista="gastos"; persist(); render(); };
 function crearGrupo(){
   const inp=$("ng-nombre"); const n=(inp.value||"").trim();
   const nuevo={id:newCode(),n:n||"Grupo",emoji:null,cerrado:false,personas:[],gastos:[],liquidaciones:[],foto:null};
