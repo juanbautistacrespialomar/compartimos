@@ -99,6 +99,9 @@
   .item .amt { font-weight:600; white-space:nowrap; }
   .del { background:none; border:none; color:#475569; font-size:17px; cursor:pointer; padding:4px; }
   .del:active { color:var(--red); }
+  /* Cruz para cerrar carteles: más grande y siempre en rojo */
+  .mclose { color:var(--red); font-size:27px; font-weight:600; line-height:1; padding:2px 6px; }
+  .mclose:active { color:#dc2626; opacity:.65; }
   .empty { text-align:center; color:var(--muted); padding:24px 10px; font-size:14px; line-height:1.5; }
   .grouphdr { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin:14px 2px 6px; display:flex; justify-content:space-between; }
   .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
@@ -223,7 +226,7 @@
 
 <div id="modal" class="modal-bg">
   <div class="modal">
-    <div class="row between" style="margin-bottom:6px"><strong id="m-title">Nuevo gasto</strong><button id="m-close" class="del" style="font-size:20px">✕</button></div>
+    <div class="row between" style="margin-bottom:6px"><strong id="m-title">Nuevo gasto</strong><button id="m-close" class="del mclose">✕</button></div>
     <div class="grid">
       <input class="full" type="text" inputmode="decimal" id="q-monto" placeholder="Monto ($)  ej: 13500">
       <input class="full" type="text" id="q-desc" placeholder="Descripción">
@@ -255,7 +258,7 @@
 
 <div id="grupoModal" class="modal-bg">
   <div class="modal">
-    <div class="row between" style="margin-bottom:10px"><strong>Ajustes del grupo</strong><button id="g-close" class="del" style="font-size:20px">✕</button></div>
+    <div class="row between" style="margin-bottom:10px"><strong>Ajustes del grupo</strong><button id="g-close" class="del mclose">✕</button></div>
     <div id="grupoBody"></div>
   </div>
 </div>
@@ -272,7 +275,7 @@
 
 <div id="newGroupModal" class="modal-bg">
   <div class="modal">
-    <div class="row between" style="margin-bottom:6px"><strong>Nuevo grupo</strong><button id="ng-close" class="del" style="font-size:20px">✕</button></div>
+    <div class="row between" style="margin-bottom:6px"><strong>Nuevo grupo</strong><button id="ng-close" class="del mclose">✕</button></div>
     <p style="font-size:13px;color:var(--muted);margin:0 0 12px">Ponele un nombre. Después le agregás la foto y las personas.</p>
     <input type="text" id="ng-nombre" placeholder="Ej: Asado del finde" enterkeyhint="done" autocomplete="off">
     <button class="btn btn-add" id="ng-ok" style="margin-top:14px;width:100%">＋ Crear grupo</button>
@@ -854,10 +857,10 @@ function renderAjustes(){
   $("importBtn").onclick=()=>$("importFile").click();
   $("importFile").onchange=(e)=>{ const file=e.target.files[0]; if(!file) return; const r=new FileReader();
     r.onload=()=>{ try{ const d=JSON.parse(r.result); const cand=d.st||d; if(!(Array.isArray(cand.proyectos)||Array.isArray(cand.personas))) throw 0;
-        if(confirm("Esto reemplaza TODOS los datos actuales. ¿Seguir?")){ st=norm(cand); persist(); vista="resumen"; render(); alert("Backup restaurado ✓"); }
+        if(confirm("Esto reemplaza TODOS los datos actuales. ¿Seguir?")){ st=norm(cand); persist(); vista="gastos"; render(); alert("Backup restaurado ✓"); }
       }catch(err){ alert("No pude leer el archivo. ¿Es un backup válido?"); } e.target.value=""; };
     r.readAsText(file); };
-  $("reset").onclick=()=>{ if(confirm("¿Borrar TODO y empezar de cero?")){ st=SEED(); persist(); vista="resumen"; render(); } };
+  $("reset").onclick=()=>{ if(confirm("¿Borrar TODO y empezar de cero?")){ st=SEED(); persist(); vista="gastos"; render(); } };
 }
 
 /* ---------- modal ---------- */
@@ -919,7 +922,7 @@ function refreshShare(){
 function pintarChips(){ $("q-chips").innerHTML=chipsHTML();
   $("q-chips").querySelectorAll(".chip").forEach(el=>el.onclick=()=>{ const id=el.dataset.cid; const i=draftPart.indexOf(id); if(i>=0)draftPart.splice(i,1); else draftPart.push(id);
     ajustarPesosPorChips(); pintarChips(); pintarPesos(); refreshShare(); }); }
-function fillSelects(){ $("q-cat").innerHTML=CATS.map(c=>`<option>${c}</option>`).join(""); $("q-pagador").innerHTML=proy().personas.map(p=>`<option value="${p.id}">${esc(p.n)}</option>`).join(""); }
+function fillSelects(){ $("q-cat").innerHTML=`<option value="" disabled selected>Seleccionar…</option>`+CATS.map(c=>`<option>${c}</option>`).join(""); $("q-pagador").innerHTML=proy().personas.map(p=>`<option value="${p.id}">${esc(p.n)}</option>`).join(""); }
 function abrirModal(id){
   const P=proy();
   if(!P.personas.length){ alert("Primero agregá personas al grupo (tocá la ⚙️ de arriba)."); abrirGrupo(); return; }
@@ -1135,6 +1138,7 @@ $("q-add").onclick=()=>{
   const P=proy(); const monto=parseMonto($("q-monto").value);
   if(!monto||monto<=0){ $("q-monto").focus(); return; }
   if(!draftPart.length){ alert("Tildá al menos una persona entre quienes se divide."); return; }
+  if(!$("q-cat").value){ $("q-cat").focus(); alert("Elegí una categoría para el gasto."); return; }
   // --- validación del reparto (nada de descuadres silenciosos) ---
   if(draftModo==="exacto"){ const s=sumaPesos(); if(Math.abs(monto-s)>0.5){ alert("Los montos exactos suman "+fmt(s)+" y el gasto es "+fmt(monto)+". Ajustá para que cuadre."); return; } }
   else if(draftModo==="porcentaje"){ const s=Math.round(sumaPesos()*10)/10; if(Math.abs(100-s)>0.05){ alert("Los porcentajes suman "+s+"% y tienen que dar 100%."); return; } }
@@ -1149,7 +1153,7 @@ $("q-add").onclick=()=>{
   else { const ng={id:newId(), monto, desc:$("q-desc").value.trim(), cat:$("q-cat").value, fecha:$("q-fecha").value||hoy(), pagador:pag, part:[...draftPart], reparto}; P.gastos.unshift(ng);
       logAct(P,"add", ng.desc||ng.cat, ng.monto);
       sync(P,"POST","/p/"+P.id+"/gasto",{id:ng.id, monto:ng.monto, descripcion:ng.desc, categoria:ng.cat, fecha:ng.fecha, pagador:ng.pagador, participantes:ng.part, reparto:ng.reparto}); }
-  persist(); cerrarModal(); vista="resumen"; render();
+  persist(); cerrarModal(); vista="gastos"; render();
 };
 
 entrarPorLink();
