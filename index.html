@@ -44,7 +44,7 @@
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.25} }
   /* --- Código de grupo (compartir) --- */
   .code-box { display:flex; align-items:center; justify-content:space-between; gap:10px; background:var(--card2); border:1.5px dashed var(--green); border-radius:14px; padding:12px 14px; margin-bottom:10px; }
-  .code-box .code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:24px; font-weight:700; letter-spacing:4px; color:var(--txt); }
+  .code-box .code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:15px; font-weight:700; letter-spacing:1px; color:var(--txt); flex:1; min-width:0; word-break:break-all; line-height:1.3; }
   .code-box .cbtn { background:var(--card); border:1px solid var(--border); color:var(--teal); border-radius:10px; padding:8px 12px; font:inherit; font-size:12px; font-weight:600; cursor:pointer; flex:none; }
   .code-box .cbtn:active { background:var(--card2); }
   /* --- Editor de foto en modal de grupo --- */
@@ -85,6 +85,13 @@
   @media (prefers-reduced-motion: reduce){ .tabind{transition:none} .tab svg{animation:none !important} #content{animation:none !important} }
   .panel { background:var(--card); border:1px solid var(--border); border-radius:18px; padding:15px; margin-bottom:12px; box-shadow:0 4px 20px rgba(99,102,241,.07); }
   .panel .ptitle { font-size:14px; font-weight:600; color:#cbd5e1; margin:0 0 10px; }
+  .act-row { display:flex; gap:10px; padding:9px 0; border-top:1px solid var(--card2); }
+  .act-row:first-of-type { border-top:none; padding-top:2px; }
+  .act-dot { width:9px; height:9px; border-radius:50%; flex:none; margin-top:5px; }
+  .act-body { flex:1; min-width:0; }
+  .act-main { font-size:13.5px; line-height:1.3; }
+  .act-sub { font-size:11.5px; color:var(--muted); margin-top:2px; }
+  .act-time { font-size:11px; color:var(--muted); flex:none; margin-top:1px; white-space:nowrap; }
   .item { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:11px 13px; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
   .item .bar { width:4px; align-self:stretch; border-radius:4px; min-height:34px; }
   .item .desc { font-weight:500; display:flex; align-items:center; gap:6px; }
@@ -97,6 +104,7 @@
   .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .grid .full { grid-column:1/-1; }
   input,select { width:100%; min-width:0; max-width:100%; background:var(--card2); border:1px solid #334155; border-radius:14px; padding:11px 13px; color:var(--txt); font:inherit; }
+  input[type="date"] { -webkit-appearance:none; appearance:none; text-align:left; }
   input:focus,select:focus { outline:none; border-color:var(--green); }
   .btn-add { background:var(--green); padding:12px; font-weight:600; font-size:14px; display:flex; align-items:center; justify-content:center; gap:6px; border-radius:999px; box-shadow:0 4px 16px rgba(99,102,241,.35); }
   .btn-add:active { background:var(--acc-dark); }
@@ -305,7 +313,7 @@ function norm(s){
   }
   s.v=3;
   if(!s.proyectos.length) s.proyectos.push({id:newCode(), n:"Mi grupo", personas:[], gastos:[], liquidaciones:[]});
-  s.proyectos.forEach(p=>{ if(!p.id)p.id=newId(); if(!p.n)p.n="Proyecto"; if(!Array.isArray(p.personas))p.personas=[]; if(!Array.isArray(p.gastos))p.gastos=[]; if(!Array.isArray(p.liquidaciones))p.liquidaciones=[]; if(!("remoto" in p))p.remoto=null; if(!("emoji" in p))p.emoji=null; if(!("cerrado" in p))p.cerrado=false; if(!("foto" in p))p.foto=null; });
+  s.proyectos.forEach(p=>{ if(!p.id)p.id=newId(); if(!p.n)p.n="Proyecto"; if(!Array.isArray(p.personas))p.personas=[]; if(!Array.isArray(p.gastos))p.gastos=[]; if(!Array.isArray(p.liquidaciones))p.liquidaciones=[]; if(!Array.isArray(p.actividad))p.actividad=[]; if(!("remoto" in p))p.remoto=null; if(!("emoji" in p))p.emoji=null; if(!("cerrado" in p))p.cerrado=false; if(!("foto" in p))p.foto=null; });
   if(!s.proyectos.some(p=>p.id===s.activo && !p.cerrado)){ const abierto=s.proyectos.find(p=>!p.cerrado); if(abierto) s.activo=abierto.id; }
   if(!s.proyectos.some(p=>p.id===s.activo)) s.activo=s.proyectos[0].id;
   return s;
@@ -424,7 +432,7 @@ function entrarPorLink(){
   fetchRemoto(g);   // bajo el estado inicial del grupo ya mismo
 }
 
-let vista="gastos", vistaPrev="gastos", editId=null, draftPart=null, draftPag=null, draftModo="igual", draftPesos={}, modoTorta="cat";
+let vista="gastos", vistaPrev="gastos", editId=null, draftPart=null, draftPag=null, draftModo="igual", draftPesos={}, modoTorta="cat", actExpandida=false;
 
 const $ = id => document.getElementById(id);
 const fmt = n => new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(Math.round(n)||0);
@@ -576,10 +584,62 @@ function render(){
   vistaPrev=vista;
 }
 
+/* ===== Registro de actividad ===== */
+// tipo -> verbo + color (el color codifica la acción, no la persona: escaneás y cazás borrados/ediciones)
+const ACTV = {
+  add:      { v:"agregó",            c:"#34d399" },
+  edit:     { v:"editó",             c:"#fbbf24" },
+  del:      { v:"borró",             c:"#f87171" },
+  pay:      { v:"registró un pago",  c:"#818cf8" },
+  panadd:   { v:"sumó a",            c:"#22d3ee" },
+  pandel:   { v:"quitó a",           c:"#f87171" },
+  panedit:  { v:"renombró a",        c:"#fbbf24" },
+  grupo:    { v:"renombró el grupo a", c:"#a855f7" },
+  foto:     { v:"cambió la foto",    c:"#818cf8" },
+};
+function logAct(P, tipo, det, monto){
+  if(!P) return;
+  if(!Array.isArray(P.actividad)) P.actividad=[];
+  P.actividad.unshift({ ts:Date.now(), quien:(YO&&YO.nombre)||"Vos", tipo, det:det||"", monto:(monto==null?null:monto) });
+  if(P.actividad.length>200) P.actividad.length=200;   // tope: no crece infinito
+}
+function colorNombre(n){ const p=proy().personas.find(x=>(x.n||"").trim().toLowerCase()===(n||"").trim().toLowerCase()); return p?pColor(p.id):"#8890b8"; }
+// "recién" -> "hace X min" -> "hace X h" (hoy) -> "ayer" -> "anteayer" -> fecha
+function tiempoRel(ts){
+  const d=Date.now()-ts;
+  if(d<60000) return "recién";
+  if(d<3600000) return "hace "+Math.floor(d/60000)+" min";
+  const h0=new Date(); h0.setHours(0,0,0,0);
+  const t0=new Date(ts); t0.setHours(0,0,0,0);
+  const dias=Math.round((h0-t0)/86400000);
+  if(dias<=0) return "hace "+Math.floor(d/3600000)+" h";
+  if(dias===1) return "ayer";
+  if(dias===2) return "anteayer";
+  return new Date(ts).toLocaleDateString("es-AR",{day:"numeric",month:"short"});
+}
+function actividadHTML(){
+  const acts=proy().actividad||[];
+  if(!acts.length) return "";
+  const lim = actExpandida ? acts.length : 10;
+  const filas = acts.slice(0,lim).map(a=>{
+    const v = ACTV[a.tipo] || { v:a.tipo, c:"#8890b8" };
+    return `<div class="act-row">
+        <span class="act-dot" style="background:${colorNombre(a.quien)}"></span>
+        <div class="act-body">
+          <div class="act-main"><b>${esc(a.quien)}</b> <span style="color:${v.c}">${v.v}</span> ${esc(a.det)}</div>
+          ${a.monto!=null?`<div class="act-sub">${fmt(a.monto)}</div>`:""}
+        </div>
+        <span class="act-time">${tiempoRel(a.ts)}</span>
+      </div>`;
+  }).join("");
+  const btn = acts.length>10 ? `<button class="btn btn-ghost mini" id="actVerTodo" style="width:100%;margin-top:10px">${actExpandida?"Ver menos ▲":"Ver todo ("+acts.length+") ▼"}</button>` : "";
+  return `<div class="panel"><p class="ptitle">🕒 Actividad reciente</p>${filas}${btn}</div>`;
+}
+
 function renderResumen(bal,total){
   const P=proy();
   if(!P.personas.length){ $("content").innerHTML=`<div class="empty">Agregá personas al grupo <b>${esc(P.n)}</b> desde la ⚙️ de arriba.</div>`; return; }
-  if(!P.gastos.length){ $("content").innerHTML=`<div class="empty">Todavía no cargaste gastos en <b>${esc(P.n)}</b>.<br>Tocá <b>＋</b> para el primero.</div>`; return; }
+  if(!P.gastos.length){ $("content").innerHTML=`<div class="empty">Todavía no cargaste gastos en <b>${esc(P.n)}</b>.<br>Tocá <b>＋</b> para el primero.</div>` + actividadHTML(); const vt0=$("actVerTodo"); if(vt0) vt0.onclick=()=>{ actExpandida=!actExpandida; render(); }; return; }
   let tdata, ttotal;
   if(modoTorta==="cat"){
     const m={}; P.gastos.forEach(g=>m[g.cat]=(m[g.cat]||0)+g.monto);
@@ -594,8 +654,9 @@ function renderResumen(bal,total){
   $("content").innerHTML =
     `<div class="panel"><div class="row between" style="margin-bottom:10px"><p class="ptitle" style="margin:0">🥧 Gastos por rubro</p>
         <div class="toggle" style="width:170px"><button data-t="cat" class="${modoTorta==='cat'?'on':''}">Categoría</button><button data-t="pag" class="${modoTorta==='pag'?'on':''}">Quién pagó</button></div></div>
-        ${donut(tdata,ttotal)}<div style="margin-top:8px">${leyenda}</div></div>`;
+        ${donut(tdata,ttotal)}<div style="margin-top:8px">${leyenda}</div></div>` + actividadHTML();
   $("content").querySelectorAll(".toggle button").forEach(b=>b.onclick=()=>{ modoTorta=b.dataset.t; render(); });
+  const vt=$("actVerTodo"); if(vt) vt.onclick=()=>{ actExpandida=!actExpandida; render(); };
 }
 
 function renderSaldos(bal,total){
@@ -642,6 +703,7 @@ function renderLiquidar(bal,total){
   $("fotoBtn").onclick=exportarFoto;
   $("content").querySelectorAll(".pay-done").forEach(b=>b.onclick=()=>{
     const Pl=proy(); const nl={id:newId(), de:b.dataset.de, a:b.dataset.a, monto:+b.dataset.m, fecha:hoy()}; Pl.liquidaciones.push(nl);
+    logAct(Pl,"pay", pName(nl.de)+" → "+pName(nl.a), nl.monto);
     sync(Pl,"POST","/p/"+Pl.id+"/liquidacion",{id:nl.id, de_persona:nl.de, a_persona:nl.a, monto:nl.monto, fecha:nl.fecha});
     persist(); render();
   });
@@ -666,7 +728,7 @@ function renderGastos(){
       <div style="display:flex;align-items:center;gap:6px"><span class="amt">${fmt(g.monto)}</span><button class="del del-g" data-id="${g.id}">🗑</button></div></div>`; }).join("");
   $("content").innerHTML=h;
   $("content").querySelectorAll(".item[data-edit]").forEach(el=>el.onclick=e=>{ if(e.target.closest(".del")) return; abrirModal(el.dataset.edit); });
-  $("content").querySelectorAll(".del-g").forEach(b=>b.onclick=e=>{ e.stopPropagation(); if(confirm("¿Borrar este gasto?")){ const P=proy(); sync(P,"DELETE","/p/"+P.id+"/gasto/"+b.dataset.id); P.gastos=P.gastos.filter(x=>x.id!==b.dataset.id); persist(); render(); } });
+  $("content").querySelectorAll(".del-g").forEach(b=>b.onclick=e=>{ e.stopPropagation(); if(confirm("¿Borrar este gasto?")){ const P=proy(); const gb=P.gastos.find(x=>x.id===b.dataset.id); if(gb) logAct(P,"del", gb.desc||gb.cat, gb.monto); sync(P,"DELETE","/p/"+P.id+"/gasto/"+b.dataset.id); P.gastos=P.gastos.filter(x=>x.id!==b.dataset.id); persist(); render(); } });
 }
 
 function renderGrupoModal(){
@@ -708,22 +770,23 @@ function renderGrupoModal(){
      <button class="btn g-save" id="g-guardar" style="margin-top:18px">✓ Guardar y cerrar</button>`;
 
   $("foto-btn").onclick=()=>$("foto-file").click();
-  $("foto-file").onchange=e=>{ const f=e.target.files[0]; if(!f) return; comprimirImagen(f, url=>{ const P=proy(); P.foto=url; syncProyecto(P); persist(); render(); renderGrupoModal(); }); e.target.value=""; };
-  if($("foto-del")) $("foto-del").onclick=()=>{ const P=proy(); P.foto=null; syncProyecto(P); persist(); render(); renderGrupoModal(); };
+  $("foto-file").onchange=e=>{ const f=e.target.files[0]; if(!f) return; comprimirImagen(f, url=>{ const P=proy(); P.foto=url; logAct(P,"foto",""); syncProyecto(P); persist(); render(); renderGrupoModal(); }); e.target.value=""; };
+  if($("foto-del")) $("foto-del").onclick=()=>{ const P=proy(); P.foto=null; logAct(P,"foto",""); syncProyecto(P); persist(); render(); renderGrupoModal(); };
 
-  $("g-nombre").onchange=()=>{ const v=$("g-nombre").value.trim(); if(v){ proy().n=v; syncProyecto(proy()); persist(); render(); renderGrupoModal(); } };
-  $("grupoBody").querySelectorAll("[data-pid]").forEach(el=>el.onchange=()=>{ const p=proy().personas.find(x=>x.id===el.dataset.pid); if(p){ p.n=el.value.trim()||p.n; const P=proy(); sync(P,"DELETE","/p/"+P.id+"/persona/"+p.id); sync(P,"POST","/p/"+P.id+"/persona",{id:p.id, nombre:p.n}); persist(); render(); renderGrupoModal(); } });
+  $("g-nombre").onchange=()=>{ const v=$("g-nombre").value.trim(); if(v && v!==proy().n){ proy().n=v; logAct(proy(),"grupo","«"+v+"»"); syncProyecto(proy()); persist(); render(); renderGrupoModal(); } };
+  $("grupoBody").querySelectorAll("[data-pid]").forEach(el=>el.onchange=()=>{ const p=proy().personas.find(x=>x.id===el.dataset.pid); if(p){ const nv=el.value.trim(); if(nv && nv!==p.n){ p.n=nv; const P=proy(); logAct(P,"panedit",p.n); sync(P,"DELETE","/p/"+P.id+"/persona/"+p.id); sync(P,"POST","/p/"+P.id+"/persona",{id:p.id, nombre:p.n}); persist(); render(); renderGrupoModal(); } } });
   $("grupoBody").querySelectorAll(".del-p").forEach(b=>b.onclick=()=>{
     const P=proy();
     const usado = P.gastos.some(g=>g.pagador===b.dataset.id||(g.part||[]).includes(b.dataset.id)) || (P.liquidaciones||[]).some(l=>l.de===b.dataset.id||l.a===b.dataset.id);
     if(usado && !confirm("Esta persona aparece en gastos o pagos. Si la borrás, se la quita. ¿Seguir?")) return;
+    const pb=P.personas.find(x=>x.id===b.dataset.id); if(pb) logAct(P,"pandel", pb.n);
     sync(P,"DELETE","/p/"+P.id+"/persona/"+b.dataset.id);
     P.personas=P.personas.filter(x=>x.id!==b.dataset.id);
     P.gastos.forEach(g=>{ g.part=(g.part||[]).filter(id=>id!==b.dataset.id); });
     P.liquidaciones=(P.liquidaciones||[]).filter(l=>l.de!==b.dataset.id&&l.a!==b.dataset.id);
     persist(); render(); renderGrupoModal();
   });
-  const add=()=>{ const v=$("np").value.trim(); if(!v) return; const P=proy(); const np={id:newId(), n:v}; P.personas.push(np); sync(P,"POST","/p/"+P.id+"/persona",{id:np.id, nombre:np.n}); persist(); render(); renderGrupoModal(); setTimeout(()=>{const n=$("np"); if(n)n.focus();},0); };
+  const add=()=>{ const v=$("np").value.trim(); if(!v) return; const P=proy(); const np={id:newId(), n:v}; P.personas.push(np); logAct(P,"panadd",np.n); sync(P,"POST","/p/"+P.id+"/persona",{id:np.id, nombre:np.n}); persist(); render(); renderGrupoModal(); setTimeout(()=>{const n=$("np"); if(n)n.focus();},0); };
   $("addp").onclick=add; $("np").addEventListener("keydown",e=>{ if(e.key==="Enter") add(); });
   if($("compartirBtn")) $("compartirBtn").onclick=async()=>{ await compartirProyecto(); renderGrupoModal(); };
   if($("copiarLink")) $("copiarLink").onclick=()=>{ const i=$("linkGrupo"); i.select(); i.setSelectionRange(0,9999); try{navigator.clipboard.writeText(i.value);}catch(e){document.execCommand("copy");} alert("Link copiado ✓"); };
@@ -1072,9 +1135,11 @@ $("q-add").onclick=()=>{
   if(draftModo!=="igual"){ const pesos={}; draftPart.forEach(id=>pesos[id]=pesoNum(id)); reparto={modo:draftModo, pesos}; }
   const pag=$("q-pagador").value;
   if(editId){ const g=P.gastos.find(x=>x.id===editId); if(g){ g.monto=monto; g.desc=$("q-desc").value.trim(); g.cat=$("q-cat").value; g.fecha=$("q-fecha").value||hoy(); g.pagador=pag; g.part=[...draftPart]; g.reparto=reparto;
+      logAct(P,"edit", g.desc||g.cat, g.monto);
       sync(P,"DELETE","/p/"+P.id+"/gasto/"+g.id);
       sync(P,"POST","/p/"+P.id+"/gasto",{id:g.id, monto:g.monto, descripcion:g.desc, categoria:g.cat, fecha:g.fecha, pagador:g.pagador, participantes:g.part, reparto:g.reparto}); } }
   else { const ng={id:newId(), monto, desc:$("q-desc").value.trim(), cat:$("q-cat").value, fecha:$("q-fecha").value||hoy(), pagador:pag, part:[...draftPart], reparto}; P.gastos.unshift(ng);
+      logAct(P,"add", ng.desc||ng.cat, ng.monto);
       sync(P,"POST","/p/"+P.id+"/gasto",{id:ng.id, monto:ng.monto, descripcion:ng.desc, categoria:ng.cat, fecha:ng.fecha, pagador:ng.pagador, participantes:ng.part, reparto:ng.reparto}); }
   persist(); cerrarModal(); vista="resumen"; render();
 };
