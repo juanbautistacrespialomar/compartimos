@@ -20,8 +20,25 @@
   }
   html { touch-action:manipulation; }
   html,body { margin:0; background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; touch-action:manipulation; }
-  body { min-height:100dvh; box-sizing:border-box; padding-top:env(safe-area-inset-top); }
-  .wrap { width:100%; max-width:600px; margin:0 auto; box-sizing:border-box; min-height:100dvh; padding:16px 16px calc(80px + env(safe-area-inset-bottom)); }
+  body { min-height:100dvh; box-sizing:border-box; }
+  .wrap { width:100%; max-width:600px; margin:0 auto; box-sizing:border-box; min-height:100dvh; padding:14px 16px calc(80px + env(safe-area-inset-bottom)); }
+  /* --- Hero de portada estilo Splitwise --- */
+  .hero { position:relative; width:100%; min-height:216px; background-size:cover; background-position:center; background-color:var(--card2); display:flex; flex-direction:column; justify-content:space-between; }
+  .hero.no-foto { background-image:linear-gradient(140deg, var(--green) 0%, var(--teal) 55%, var(--card2) 100%) !important; }
+  .hero-shade { position:absolute; inset:0; background:linear-gradient(180deg, rgba(2,6,23,.30) 0%, rgba(2,6,23,.10) 38%, rgba(10,15,26,.94) 100%); pointer-events:none; }
+  .hero-top { position:relative; z-index:1; display:flex; justify-content:space-between; align-items:center; padding:calc(env(safe-area-inset-top) + 12px) 16px 0; }
+  .hero-btn { width:40px; height:40px; border-radius:50%; border:none; background:rgba(15,23,42,.42); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); color:#fff; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; }
+  .hero-btn:active { background:rgba(15,23,42,.62); }
+  .hero-foot { position:relative; z-index:1; padding:0 18px 18px; }
+  .hero-title { position:relative; display:inline-flex; align-items:center; gap:9px; max-width:100%; }
+  .hero-title #projEmoji { font-size:27px; line-height:1; flex:none; }
+  .hero-title #heroName { font-size:26px; font-weight:800; color:#fff; text-shadow:0 2px 10px rgba(0,0,0,.45); line-height:1.12; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .hero-chev { color:rgba(255,255,255,.85); font-size:14px; flex:none; }
+  .hero-select { position:absolute; inset:0; width:100%; height:100%; opacity:0; border:none; cursor:pointer; -webkit-appearance:none; appearance:none; }
+  .hero-pill { display:inline-flex; align-items:center; gap:6px; margin-top:11px; background:rgba(2,6,23,.5); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); color:#fff; font-size:13px; font-weight:600; padding:7px 14px; border-radius:999px; }
+  /* --- Editor de foto en modal de grupo --- */
+  .foto-edit { display:flex; align-items:center; gap:12px; margin:6px 0 14px; }
+  .foto-prev { width:64px; height:64px; border-radius:14px; background-size:cover; background-position:center; background-color:var(--card2); border:1px solid var(--border); flex:none; display:flex; align-items:center; justify-content:center; font-size:26px; }
   .row { display:flex; align-items:center; }
   .between { justify-content:space-between; }
   h1 { font-size:20px; margin:0; }
@@ -128,22 +145,27 @@
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="row between header">
-    <div class="row" style="gap:8px">
-      <img class="logo" src="Logo.png" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'💸',style:'font-size:22px'}))">
-      <h1>Compartimos</h1>
+<div class="hero no-foto" id="hero">
+  <div class="hero-shade"></div>
+  <div class="hero-top">
+    <button class="hero-btn" id="exportBtn" title="Exportar CSV">⤓</button>
+    <div style="display:flex;gap:9px">
+      <button class="hero-btn" id="projNew" title="Nuevo grupo">＋</button>
+      <button class="hero-btn" id="grupoBtn" title="Ajustes del grupo">⚙️</button>
     </div>
-    <button class="btn btn-ghost" id="exportBtn">⤓ CSV</button>
   </div>
-
-  <div class="row projbar">
-    <span id="projEmoji" style="font-size:18px;flex:none">📁</span>
-    <select id="projSel"></select>
-    <button class="pnav" id="grupoBtn" title="Ajustes del grupo">⚙️</button>
-    <button class="pnav" id="projNew" title="Nuevo grupo">＋</button>
+  <div class="hero-foot">
+    <div class="hero-title">
+      <span id="projEmoji">📁</span>
+      <span id="heroName">Grupo</span>
+      <span class="hero-chev">▾</span>
+      <select id="projSel" class="hero-select" aria-label="Cambiar de grupo"></select>
+    </div>
+    <span class="hero-pill" id="heroSub">👥 0 personas</span>
   </div>
+</div>
 
+<div class="wrap">
   <div class="cards" id="cards"></div>
 
   <div id="content"></div>
@@ -228,7 +250,7 @@ function norm(s){
   }
   s.v=3;
   if(!s.proyectos.length) s.proyectos.push({id:newId(), n:"Mi grupo", personas:[], gastos:[], liquidaciones:[]});
-  s.proyectos.forEach(p=>{ if(!p.id)p.id=newId(); if(!p.n)p.n="Proyecto"; if(!Array.isArray(p.personas))p.personas=[]; if(!Array.isArray(p.gastos))p.gastos=[]; if(!Array.isArray(p.liquidaciones))p.liquidaciones=[]; if(!("remoto" in p))p.remoto=null; if(!("emoji" in p))p.emoji=null; if(!("cerrado" in p))p.cerrado=false; });
+  s.proyectos.forEach(p=>{ if(!p.id)p.id=newId(); if(!p.n)p.n="Proyecto"; if(!Array.isArray(p.personas))p.personas=[]; if(!Array.isArray(p.gastos))p.gastos=[]; if(!Array.isArray(p.liquidaciones))p.liquidaciones=[]; if(!("remoto" in p))p.remoto=null; if(!("emoji" in p))p.emoji=null; if(!("cerrado" in p))p.cerrado=false; if(!("foto" in p))p.foto=null; });
   if(!s.proyectos.some(p=>p.id===s.activo && !p.cerrado)){ const abierto=s.proyectos.find(p=>!p.cerrado); if(abierto) s.activo=abierto.id; }
   if(!s.proyectos.some(p=>p.id===s.activo)) s.activo=s.proyectos[0].id;
   return s;
@@ -292,7 +314,7 @@ async function compartirProyecto(){
   const P=proy(), btn=$("compartirBtn");
   try{
     if(btn){ btn.disabled=true; btn.textContent="Compartiendo..."; }
-    await apiPost("/p/"+P.id, {nombre:P.n});
+    await apiPost("/p/"+P.id, {nombre:P.n, emoji:P.emoji||null, foto:P.foto||null});
     for(const per of P.personas) await apiPost("/p/"+P.id+"/persona", {id:per.id, nombre:per.n});
     for(const g of P.gastos) await apiPost("/p/"+P.id+"/gasto", {id:g.id, monto:g.monto, descripcion:g.desc, categoria:g.cat, fecha:g.fecha, pagador:g.pagador, participantes:g.part});
     for(const l of P.liquidaciones) await apiPost("/p/"+P.id+"/liquidacion", {id:l.id, de_persona:l.de, a_persona:l.a, monto:l.monto, fecha:l.fecha});
@@ -318,6 +340,8 @@ async function fetchRemoto(id){
     ultimoRev[id] = data.proyecto.rev;
     // El servidor es la verdad (ya subí todo lo mío): traigo y mapeo al formato local
     P.n = data.proyecto.nombre;
+    if("emoji" in data.proyecto && data.proyecto.emoji) P.emoji = data.proyecto.emoji;
+    if("foto" in data.proyecto) P.foto = data.proyecto.foto || null;   // solo si el Worker ya soporta foto
     P.personas = data.personas.map(x=>({id:x.id, n:x.nombre}));
     P.gastos = data.gastos.map(x=>({id:x.id, monto:x.monto, desc:x.descripcion, cat:x.categoria, fecha:x.fecha, pagador:x.pagador, part:x.participantes||[]}));
     P.liquidaciones = data.liquidaciones.map(x=>({id:x.id, de:x.de_persona, a:x.a_persona, monto:x.monto, fecha:x.fecha}));
@@ -353,6 +377,24 @@ function proy(){ return st.proyectos.find(p=>p.id===st.activo) || st.proyectos[0
 function pColor(id){ const i=proy().personas.findIndex(p=>p.id===id); return PCOL[((i<0?0:i))%PCOL.length]; }
 function pName(id){ const p=proy().personas.find(x=>x.id===id); return p?p.n:"(borrado)"; }
 function fechaCorta(d){ return d? (d.slice(8,10)+"/"+d.slice(5,7)) : ""; }
+
+/* ---------- foto de portada del grupo ---------- */
+// Redimensiona a máx 1000px de ancho y comprime a JPEG para que pese poco y viaje bien por la red.
+function comprimirImagen(file, cb){
+  const url=URL.createObjectURL(file), img=new Image();
+  img.onload=()=>{
+    const maxW=1000, scale=Math.min(1, maxW/img.width);
+    const w=Math.round(img.width*scale), h=Math.round(img.height*scale);
+    const c=document.createElement("canvas"); c.width=w; c.height=h;
+    c.getContext("2d").drawImage(img,0,0,w,h);
+    URL.revokeObjectURL(url);
+    try{ cb(c.toDataURL("image/jpeg",0.72)); }catch(e){ alert("No pude procesar esa imagen."); }
+  };
+  img.onerror=()=>{ URL.revokeObjectURL(url); alert("No pude leer esa imagen."); };
+  img.src=url;
+}
+// Sube nombre/emoji/foto al servidor (solo si el grupo está compartido). Requiere que el Worker acepte estos campos en POST /p/:id
+function syncProyecto(P){ sync(P,"POST","/p/"+P.id,{nombre:P.n, emoji:P.emoji||null, foto:P.foto||null}); }
 
 /* ---------- núcleo de cálculo ---------- */
 function computar(){
@@ -403,10 +445,23 @@ function donut(data,total){
 }
 
 /* ---------- render ---------- */
-function renderProjBar(){ $("projSel").innerHTML = st.proyectos.filter(p=>!p.cerrado).map(p=>`<option value="${p.id}" ${p.id===st.activo?"selected":""}>${esc(p.n)}</option>`).join(""); const P=proy(); if($("projEmoji")) $("projEmoji").textContent = P.emoji || "📁"; }
+function renderProjBar(){ $("projSel").innerHTML = st.proyectos.filter(p=>!p.cerrado).map(p=>`<option value="${p.id}" ${p.id===st.activo?"selected":""}>${esc(p.n)}</option>`).join(""); }
+function renderHero(){
+  const P=proy(), hero=$("hero");
+  if(P.foto){ hero.style.backgroundImage=`url("${P.foto}")`; hero.classList.remove("no-foto"); }
+  else { hero.style.backgroundImage=""; hero.classList.add("no-foto"); }
+  $("projEmoji").textContent = P.emoji || "📁";
+  $("heroName").textContent = P.n;
+  const {bal}=computar(); const pagos=liquidar(bal);
+  const nP=P.personas.length;
+  let estado = !P.gastos.length ? "sin gastos aún"
+    : (pagos.length ? `${pagos.length} pago${pagos.length>1?"s":""} pendiente${pagos.length>1?"s":""}` : "✓ todo saldado");
+  $("heroSub").textContent = `👥 ${nP} ${nP===1?"persona":"personas"} · ${estado}`;
+}
 
 function render(){
   renderProjBar();
+  renderHero();
   const _orden=["gastos","resumen","saldos","liquidar","ajustes"], _idx=_orden.indexOf(vista), _cambioVista=vista!==vistaPrev;
   document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.v===vista));
   $("tabInd").style.width=(100/_orden.length)+"%";
@@ -539,7 +594,17 @@ function renderGrupoModal(){
     : `<p style="font-size:12px;color:var(--muted);margin-bottom:8px">Subilo a la nube para que tus amigos carguen gastos con vos.</p>
        <button class="btn btn-ghost" id="compartirBtn">🔗 Compartir con amigos</button>`;
   $("grupoBody").innerHTML =
-    `<label style="font-size:11px;color:var(--muted)">Nombre del grupo</label>
+    `<label style="font-size:11px;color:var(--muted)">Foto de portada</label>
+     <div class="foto-edit">
+       <div class="foto-prev" id="fotoPrev" style="${P.foto?`background-image:url('${P.foto}')`:''}">${P.foto?"":(P.emoji||"📁")}</div>
+       <div style="display:flex;flex-direction:column;gap:7px">
+         <button class="btn btn-ghost" id="foto-btn" style="justify-content:flex-start">📷 ${P.foto?"Cambiar foto":"Elegir foto"}</button>
+         ${P.foto?`<button class="btn btn-ghost" id="foto-del" style="justify-content:flex-start;color:var(--red)">✕ Quitar foto</button>`:""}
+       </div>
+       <input type="file" id="foto-file" accept="image/*" style="display:none">
+     </div>
+     ${P.remoto?`<p style="font-size:11px;color:var(--muted);margin:-6px 0 12px">La foto se sincroniza: todos en el grupo ven la misma.</p>`:`<p style="font-size:11px;color:var(--muted);margin:-6px 0 12px">Compartí el grupo para que la foto la vean todos.</p>`}
+     <label style="font-size:11px;color:var(--muted)">Nombre del grupo</label>
      <input id="g-nombre" value="${esc(P.n)}" style="margin:5px 0 12px">
      <label style="font-size:11px;color:var(--muted)">Emoji del grupo</label>
      <div style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 14px">${emojisHtml}</div>
@@ -550,8 +615,12 @@ function renderGrupoModal(){
      <div style="margin-top:6px">${compartirHtml}</div>
      <button class="btn g-save" id="g-guardar" style="margin-top:18px">✓ Guardar y cerrar</button>`;
 
-  $("g-nombre").onchange=()=>{ const v=$("g-nombre").value.trim(); if(v){ proy().n=v; persist(); render(); renderGrupoModal(); } };
-  $("grupoBody").querySelectorAll(".emoji-pick").forEach(b=>b.onclick=()=>{ proy().emoji=b.dataset.emoji; persist(); render(); renderGrupoModal(); });
+  $("foto-btn").onclick=()=>$("foto-file").click();
+  $("foto-file").onchange=e=>{ const f=e.target.files[0]; if(!f) return; comprimirImagen(f, url=>{ const P=proy(); P.foto=url; syncProyecto(P); persist(); render(); renderGrupoModal(); }); e.target.value=""; };
+  if($("foto-del")) $("foto-del").onclick=()=>{ const P=proy(); P.foto=null; syncProyecto(P); persist(); render(); renderGrupoModal(); };
+
+  $("g-nombre").onchange=()=>{ const v=$("g-nombre").value.trim(); if(v){ proy().n=v; syncProyecto(proy()); persist(); render(); renderGrupoModal(); } };
+  $("grupoBody").querySelectorAll(".emoji-pick").forEach(b=>b.onclick=()=>{ proy().emoji=b.dataset.emoji; syncProyecto(proy()); persist(); render(); renderGrupoModal(); });
   $("grupoBody").querySelectorAll("[data-pid]").forEach(el=>el.onchange=()=>{ const p=proy().personas.find(x=>x.id===el.dataset.pid); if(p){ p.n=el.value.trim()||p.n; const P=proy(); sync(P,"DELETE","/p/"+P.id+"/persona/"+p.id); sync(P,"POST","/p/"+P.id+"/persona",{id:p.id, nombre:p.n}); persist(); render(); renderGrupoModal(); } });
   $("grupoBody").querySelectorAll(".del-p").forEach(b=>b.onclick=()=>{
     const P=proy();
