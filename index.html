@@ -313,7 +313,7 @@ function norm(s){
   }
   s.v=3;
   if(!s.proyectos.length) s.proyectos.push({id:newCode(), n:"Mi grupo", personas:[], gastos:[], liquidaciones:[]});
-  s.proyectos.forEach(p=>{ if(!p.id)p.id=newId(); if(!p.n)p.n="Proyecto"; if(!Array.isArray(p.personas))p.personas=[]; if(!Array.isArray(p.gastos))p.gastos=[]; if(!Array.isArray(p.liquidaciones))p.liquidaciones=[]; if(!Array.isArray(p.actividad))p.actividad=[]; if(!("remoto" in p))p.remoto=null; if(!("emoji" in p))p.emoji=null; if(!("cerrado" in p))p.cerrado=false; if(!("foto" in p))p.foto=null; });
+  s.proyectos.forEach(p=>{ if(!p.id)p.id=newId(); if(!p.n)p.n="Proyecto"; if(!Array.isArray(p.personas))p.personas=[]; if(!Array.isArray(p.gastos))p.gastos=[]; if(!Array.isArray(p.liquidaciones))p.liquidaciones=[]; if(!Array.isArray(p.actividad))p.actividad=[]; p.actividad.forEach(a=>{ if(!a.id)a.id=newId(); }); if(!("remoto" in p))p.remoto=null; if(!("emoji" in p))p.emoji=null; if(!("cerrado" in p))p.cerrado=false; if(!("foto" in p))p.foto=null; });
   if(!s.proyectos.some(p=>p.id===s.activo && !p.cerrado)){ const abierto=s.proyectos.find(p=>!p.cerrado); if(abierto) s.activo=abierto.id; }
   if(!s.proyectos.some(p=>p.id===s.activo)) s.activo=s.proyectos[0].id;
   return s;
@@ -384,6 +384,7 @@ async function compartirProyecto(){
     for(const per of P.personas) await apiPost("/p/"+P.id+"/persona", {id:per.id, nombre:per.n});
     for(const g of P.gastos) await apiPost("/p/"+P.id+"/gasto", {id:g.id, monto:g.monto, descripcion:g.desc, categoria:g.cat, fecha:g.fecha, pagador:g.pagador, participantes:g.part, reparto:g.reparto||null});
     for(const l of P.liquidaciones) await apiPost("/p/"+P.id+"/liquidacion", {id:l.id, de_persona:l.de, a_persona:l.a, monto:l.monto, fecha:l.fecha});
+    for(const a of (P.actividad||[])) await apiPost("/p/"+P.id+"/actividad", {id:a.id, ts:a.ts, quien:a.quien, tipo:a.tipo, det:a.det, monto:a.monto});
     P.remoto=P.id; persist(); render();
     alert("¡Listo! Este proyecto ya está compartido. Pasales el link a tus amigos ✓");
   }catch(e){
@@ -411,6 +412,11 @@ async function fetchRemoto(id){
     P.personas = data.personas.map(x=>({id:x.id, n:x.nombre}));
     P.gastos = data.gastos.map(x=>({id:x.id, monto:x.monto, desc:x.descripcion, cat:x.categoria, fecha:x.fecha, pagador:x.pagador, part:x.participantes||[], reparto:x.reparto||null}));
     P.liquidaciones = data.liquidaciones.map(x=>({id:x.id, de:x.de_persona, a:x.a_persona, monto:x.monto, fecha:x.fecha}));
+    if(Array.isArray(data.actividad)){   // merge: unión por id (server + local sin subir), más nuevo primero, tope 200
+      const mapa={}; (P.actividad||[]).forEach(a=>{ if(a.id) mapa[a.id]=a; });
+      data.actividad.forEach(x=>{ mapa[x.id]={id:x.id, ts:x.ts, quien:x.quien, tipo:x.tipo, det:x.det, monto:(x.monto==null?null:x.monto)}; });
+      P.actividad = Object.values(mapa).sort((a,b)=>b.ts-a.ts).slice(0,200);
+    }
     persist(); render();
   }catch(e){ /* sin señal o error puntual: reintenta en el próximo poll */ }
 }
@@ -600,8 +606,10 @@ const ACTV = {
 function logAct(P, tipo, det, monto){
   if(!P) return;
   if(!Array.isArray(P.actividad)) P.actividad=[];
-  P.actividad.unshift({ ts:Date.now(), quien:(YO&&YO.nombre)||"Vos", tipo, det:det||"", monto:(monto==null?null:monto) });
+  const ev={ id:newId(), ts:Date.now(), quien:(YO&&YO.nombre)||"Vos", tipo, det:det||"", monto:(monto==null?null:monto) };
+  P.actividad.unshift(ev);
   if(P.actividad.length>200) P.actividad.length=200;   // tope: no crece infinito
+  sync(P,"POST","/p/"+P.id+"/actividad",{id:ev.id, ts:ev.ts, quien:ev.quien, tipo:ev.tipo, det:ev.det, monto:ev.monto});  // no-op si es local
 }
 function colorNombre(n){ const p=proy().personas.find(x=>(x.n||"").trim().toLowerCase()===(n||"").trim().toLowerCase()); return p?pColor(p.id):"#8890b8"; }
 // "recién" -> "hace X min" -> "hace X h" (hoy) -> "ayer" -> "anteayer" -> fecha
