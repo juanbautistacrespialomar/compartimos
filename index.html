@@ -37,6 +37,12 @@
   .hero-chev { color:rgba(255,255,255,.85); font-size:14px; flex:none; }
   .hero-select { position:absolute; inset:0; width:100%; height:100%; opacity:0; border:none; cursor:pointer; -webkit-appearance:none; appearance:none; }
   .hero-pill { display:inline-flex; align-items:center; gap:6px; margin-top:11px; background:rgba(2,6,23,.5); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); color:#fff; font-size:13px; font-weight:600; padding:7px 14px; border-radius:999px; }
+  .sync-chip { display:none; align-items:center; gap:6px; margin-top:8px; margin-left:8px; background:rgba(2,6,23,.5); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); color:#fff; font-size:11px; font-weight:600; padding:6px 11px; border-radius:999px; vertical-align:middle; }
+  .sync-chip.show { display:inline-flex; }
+  .sync-chip .sdot { width:8px; height:8px; border-radius:50%; background:var(--ok); flex:none; }
+  .sync-chip.saving .sdot { background:var(--amber); animation:pulse 1s ease-in-out infinite; }
+  .sync-chip.offline .sdot { background:#94a3b8; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.25} }
   /* --- Editor de foto en modal de grupo --- */
   .foto-edit { display:flex; align-items:center; gap:12px; margin:6px 0 14px; }
   .foto-prev { width:64px; height:64px; border-radius:16px; background-size:cover; background-position:center; background-color:var(--card2); border:1px solid var(--border); flex:none; display:flex; align-items:center; justify-content:center; font-size:26px; }
@@ -170,6 +176,7 @@
       <select id="projSel" class="hero-select" aria-label="Cambiar de grupo"></select>
     </div>
     <span class="hero-pill" id="heroSub">👥 0 personas</span>
+    <span class="sync-chip" id="syncChip"><span class="sdot"></span><span id="syncTxt">Sincronizado</span></span>
   </div>
 </div>
 
@@ -309,10 +316,11 @@ async function apiPost(path, body){
 const KEY_COLA = "compartimos.cola";
 let cola = load(KEY_COLA, []);
 let vaciando = false;
-function encolar(op){ cola.push(op); save(KEY_COLA, cola); vaciarCola(); }
+function encolar(op){ cola.push(op); save(KEY_COLA, cola); if(typeof actualizarSync==="function") actualizarSync(); vaciarCola(); }
 async function vaciarCola(){
   if(vaciando || !cola.length || !navigator.onLine) return;
   vaciando = true;
+  if(typeof actualizarSync==="function") actualizarSync();
   try{
     while(cola.length){
       const op = cola[0];
@@ -323,13 +331,15 @@ async function vaciarCola(){
       });
       if(!r.ok) throw new Error(op.path+" -> "+r.status);
       cola.shift(); save(KEY_COLA, cola);
+      if(typeof actualizarSync==="function") actualizarSync();
     }
   }catch(e){ /* falló: queda en la cola y reintenta más tarde */ }
-  finally{ vaciando = false; }
+  finally{ vaciando = false; if(typeof actualizarSync==="function") actualizarSync(); }
 }
 // Solo sincroniza si el proyecto está compartido; si es local puro, no hace nada.
 function sync(P, method, path, body){ if(P && P.remoto) encolar({method, path, body}); }
-window.addEventListener("online", vaciarCola);
+window.addEventListener("online", ()=>{ vaciarCola(); if(typeof actualizarSync==="function") actualizarSync(); });
+window.addEventListener("offline", ()=>{ if(typeof actualizarSync==="function") actualizarSync(); });
 
 function linkGrupo(P){ return location.origin+location.pathname+"?g="+P.id; }
 async function compartirProyecto(){
@@ -479,6 +489,26 @@ function renderHero(){
   let estado = !P.gastos.length ? "sin gastos aún"
     : (pagos.length ? `${pagos.length} pago${pagos.length>1?"s":""} pendiente${pagos.length>1?"s":""}` : "✓ todo saldado");
   $("heroSub").textContent = `👥 ${nP} ${nP===1?"persona":"personas"} · ${estado}`;
+  actualizarSync();
+}
+// Chip de estado de sincronización (solo en grupos compartidos).
+function actualizarSync(){
+  const chip=$("syncChip"); if(!chip) return;
+  const P=proy();
+  if(!P || !P.remoto){ chip.className="sync-chip"; return; }   // grupo local: sin chip
+  chip.classList.add("show");
+  const online = navigator.onLine;
+  const pendientes = cola.length;
+  if(!online){
+    chip.classList.remove("saving"); chip.classList.add("offline");
+    $("syncTxt").textContent = pendientes ? "Sin conexión · se guardará" : "Sin conexión";
+  } else if(pendientes){
+    chip.classList.remove("offline"); chip.classList.add("saving");
+    $("syncTxt").textContent = "Guardando…";
+  } else {
+    chip.classList.remove("saving","offline");
+    $("syncTxt").textContent = "Sincronizado";
+  }
 }
 
 function render(){
@@ -728,7 +758,9 @@ function abrirModal(id){
     draftPart=(g.part||[]).filter(pid=>P.personas.some(p=>p.id===pid)); draftPag=P.personas.some(p=>p.id===g.pagador)?g.pagador:P.personas[0].id;
     $("q-add").textContent="✓ Guardar cambios";
   } else { editId=null; $("m-title").textContent="Nuevo gasto"; $("q-monto").value=""; $("q-desc").value=""; $("q-cat").selectedIndex=0; $("q-fecha").value=hoy();
-    draftPart=P.personas.map(p=>p.id); draftPag=P.personas[0].id; $("q-add").textContent="＋ Agregar"; }
+    draftPart=P.personas.map(p=>p.id);
+    const yoMatch=P.personas.find(p=>(p.n||"").trim().toLowerCase()===(YO&&YO.nombre||"").trim().toLowerCase());
+    draftPag=yoMatch?yoMatch.id:P.personas[0].id; $("q-add").textContent="＋ Agregar"; }
   $("q-pagador").value=draftPag; pintarChips(); refreshShare(); $("modal").classList.add("open"); $("q-monto").focus();
 }
 function cerrarModal(){ $("modal").classList.remove("open"); editId=null; }
