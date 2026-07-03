@@ -19,8 +19,8 @@
     --txt:#eef1ff; --muted:#8890b8; --green:#6366f1; --teal:#818cf8; --amber:#fbbf24; --sky:#818cf8; --red:#f87171; --violet:#a855f7;
     --acc-dark:#4f46e5; --ok:#34d399; --glow:rgba(99,102,241,.30);
   }
-  html { touch-action:manipulation; }
-  html,body { margin:0; background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; touch-action:manipulation; }
+  html { touch-action:manipulation; overscroll-behavior:none; }
+  html,body { margin:0; background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; touch-action:manipulation; overscroll-behavior:none; }
   body { min-height:100dvh; box-sizing:border-box; }
   .wrap { width:100%; max-width:600px; margin:0 auto; box-sizing:border-box; min-height:100dvh; padding:14px 16px calc(80px + env(safe-area-inset-bottom)); }
   /* --- Hero de portada estilo Splitwise --- */
@@ -56,7 +56,7 @@
   .c { background:var(--card); border:1px solid var(--border); border-radius:18px; padding:12px; box-shadow:0 4px 18px rgba(99,102,241,.08); }
   .c .lab { font-size:11px; color:var(--muted); margin-bottom:4px; }
   .c .val { font-size:15px; font-weight:700; }
-  .bottomnav { position:fixed; left:0; right:0; bottom:0; z-index:50; background:var(--card2); border-top:1px solid var(--border); padding-bottom:env(safe-area-inset-bottom); }
+  .bottomnav { position:fixed; left:0; right:0; bottom:0; z-index:50; background:var(--card2); border-top:1px solid var(--border); padding-bottom:env(safe-area-inset-bottom); transform:translateZ(0); -webkit-transform:translateZ(0); will-change:transform; }
   .bottomnav-inner { max-width:600px; margin:0 auto; display:flex; position:relative; }
   .tab { flex:1; position:relative; display:flex; flex-direction:column; align-items:center; gap:3px; padding:9px 4px 8px; background:none; border:none; cursor:pointer; color:var(--muted); font:inherit; font-size:10px; font-weight:600; letter-spacing:.03em; text-transform:uppercase; transition:color .25s; }
   .tab svg { width:22px; height:22px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
@@ -371,7 +371,7 @@ let vista="gastos", vistaPrev="gastos", editId=null, draftPart=null, draftPag=nu
 
 const $ = id => document.getElementById(id);
 const fmt = n => new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(Math.round(n)||0);
-const hoy = () => new Date().toISOString().slice(0,10);
+const hoy = () => { const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
 function esc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 function persist(){ save(KEY,st); }
 function proy(){ return st.proyectos.find(p=>p.id===st.activo) || st.proyectos[0]; }
@@ -660,7 +660,6 @@ function renderAjustes(){
     `<div class="panel"><p class="ptitle">📁 Proyecto actual</p>
        <label style="font-size:11px;color:var(--muted)">Nombre</label>
        <input id="projName" value="${esc(P.n)}" style="margin:5px 0 10px">
-       <button class="btn btn-ghost" id="projDup" style="margin-bottom:8px">⧉ Duplicar (mismas personas, sin gastos)</button>
        <button class="btn btn-ghost" id="projClose" style="margin-bottom:8px">✓ Cerrar grupo (marcarlo como liquidado)</button>
        <button class="btn btn-ghost danger" id="projDel">🗑 Borrar este grupo</button></div>
      ${liquidadosHtml}
@@ -670,8 +669,7 @@ function renderAjustes(){
        <input type="file" id="importFile" accept="application/json,.json" style="display:none">
        <button class="btn btn-ghost danger" id="reset">↺ Borrar TODO y empezar de cero</button>
        <p style="font-size:11px;color:var(--muted);margin:8px 0 0">El backup guarda todos los proyectos en un archivo JSON.</p></div>`;
-  $("projName").onchange=()=>{ const v=$("projName").value.trim(); if(v){ proy().n=v; persist(); render(); } };
-  $("projDup").onclick=()=>{ const src=proy(); const nuevo={id:newId(), n:src.n+" (copia)", emoji:src.emoji, cerrado:false, personas:src.personas.map(p=>({...p})), gastos:[], liquidaciones:[]}; st.proyectos.push(nuevo); st.activo=nuevo.id; persist(); vista="gastos"; render(); };
+  $("projName").onchange=()=>{ const v=$("projName").value.trim(); if(v){ proy().n=v; syncProyecto(proy()); persist(); render(); } };
   $("projClose").onclick=()=>{
     if(!confirm(`¿Cerrar "${P.n}"? Deja de aparecer en el inicio y queda guardado en "Grupos liquidados". Podés reabrirlo cuando quieras.`)) return;
     P.cerrado=true;
