@@ -113,6 +113,11 @@
   .chip.on { border-color:var(--green); background:#0b2a22; }
   .chip.on .box { background:var(--green); border-color:var(--green); }
   .chip .pdot { width:9px; height:9px; border-radius:50%; flex:none; }
+  .peso-row { display:flex; align-items:center; gap:9px; padding:6px 2px; }
+  .peso-row .pn { flex:1; display:flex; align-items:center; gap:7px; min-width:0; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .peso-row .pdot { width:9px; height:9px; border-radius:50%; flex:none; }
+  .peso-row .suf { color:var(--muted); font-size:13px; flex:none; width:12px; text-align:center; }
+  .peso-row input { width:110px; flex:none; text-align:right; padding:9px 11px; }
   .bal { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 0; border-bottom:1px solid #16202e; }
   .bal:last-child { border-bottom:none; }
   .bal .who { display:flex; align-items:center; gap:9px; min-width:0; }
@@ -227,7 +232,15 @@
       </span>
     </div>
     <div class="chips" id="q-chips"></div>
-    <p id="q-share" style="font-size:11px;color:var(--muted);margin:8px 2px 0"></p>
+    <label class="tt" style="margin:12px 0 5px">¿Cómo se reparte?</label>
+    <div class="toggle" id="q-modes">
+      <button type="button" data-modo="igual">Igual</button>
+      <button type="button" data-modo="partes">Partes</button>
+      <button type="button" data-modo="exacto">Exacto</button>
+      <button type="button" data-modo="porcentaje">%</button>
+    </div>
+    <div id="q-pesos" style="margin-top:8px"></div>
+    <p id="q-share" style="font-size:12px;color:var(--muted);margin:8px 2px 0"></p>
     <button class="btn btn-add full" id="q-add" style="margin-top:12px">＋ Agregar</button>
   </div>
 </div>
@@ -361,7 +374,7 @@ async function compartirProyecto(){
     if(btn){ btn.disabled=true; btn.textContent="Compartiendo..."; }
     await apiPost("/p/"+P.id, {nombre:P.n, emoji:P.emoji||null, foto:P.foto||null});
     for(const per of P.personas) await apiPost("/p/"+P.id+"/persona", {id:per.id, nombre:per.n});
-    for(const g of P.gastos) await apiPost("/p/"+P.id+"/gasto", {id:g.id, monto:g.monto, descripcion:g.desc, categoria:g.cat, fecha:g.fecha, pagador:g.pagador, participantes:g.part});
+    for(const g of P.gastos) await apiPost("/p/"+P.id+"/gasto", {id:g.id, monto:g.monto, descripcion:g.desc, categoria:g.cat, fecha:g.fecha, pagador:g.pagador, participantes:g.part, reparto:g.reparto||null});
     for(const l of P.liquidaciones) await apiPost("/p/"+P.id+"/liquidacion", {id:l.id, de_persona:l.de, a_persona:l.a, monto:l.monto, fecha:l.fecha});
     P.remoto=P.id; persist(); render();
     alert("¡Listo! Este proyecto ya está compartido. Pasales el link a tus amigos ✓");
@@ -388,7 +401,7 @@ async function fetchRemoto(id){
     if("emoji" in data.proyecto && data.proyecto.emoji) P.emoji = data.proyecto.emoji;
     if("foto" in data.proyecto) P.foto = data.proyecto.foto || null;   // solo si el Worker ya soporta foto
     P.personas = data.personas.map(x=>({id:x.id, n:x.nombre}));
-    P.gastos = data.gastos.map(x=>({id:x.id, monto:x.monto, desc:x.descripcion, cat:x.categoria, fecha:x.fecha, pagador:x.pagador, part:x.participantes||[]}));
+    P.gastos = data.gastos.map(x=>({id:x.id, monto:x.monto, desc:x.descripcion, cat:x.categoria, fecha:x.fecha, pagador:x.pagador, part:x.participantes||[], reparto:x.reparto||null}));
     P.liquidaciones = data.liquidaciones.map(x=>({id:x.id, de:x.de_persona, a:x.a_persona, monto:x.monto, fecha:x.fecha}));
     persist(); render();
   }catch(e){ /* sin señal o error puntual: reintenta en el próximo poll */ }
@@ -411,7 +424,7 @@ function entrarPorLink(){
   fetchRemoto(g);   // bajo el estado inicial del grupo ya mismo
 }
 
-let vista="gastos", vistaPrev="gastos", editId=null, draftPart=null, draftPag=null, modoTorta="cat";
+let vista="gastos", vistaPrev="gastos", editId=null, draftPart=null, draftPag=null, draftModo="igual", draftPesos={}, modoTorta="cat";
 
 const $ = id => document.getElementById(id);
 const fmt = n => new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(Math.round(n)||0);
@@ -442,6 +455,19 @@ function comprimirImagen(file, cb){
 function syncProyecto(P){ sync(P,"POST","/p/"+P.id,{nombre:P.n, emoji:P.emoji||null, foto:P.foto||null}); }
 
 /* ---------- núcleo de cálculo ---------- */
+// Devuelve cuánto le toca a cada participante según el modo de reparto del gasto.
+// Sin g.reparto (o modo "igual") => partes iguales, igual que siempre.
+function repartoDe(g, part){
+  const out={}; const r=g.reparto;
+  if(!r || !r.modo || r.modo==="igual"){ const s=g.monto/part.length; part.forEach(id=>out[id]=s); return out; }
+  const pesos=r.pesos||{};
+  if(r.modo==="exacto"){ part.forEach(id=>out[id]=(+pesos[id]||0)); return out; }          // montos exactos, tal cual
+  if(r.modo==="porcentaje"){ part.forEach(id=>out[id]=g.monto*((+pesos[id]||0)/100)); return out; }
+  const sum=part.reduce((a,id)=>a+(+pesos[id]||0),0);                                        // "partes": proporcional a los pesos
+  if(sum<=0){ const s=g.monto/part.length; part.forEach(id=>out[id]=s); return out; }        // guarda: sin pesos válidos, cae a igual
+  part.forEach(id=>out[id]=g.monto*((+pesos[id]||0)/sum));
+  return out;
+}
 function computar(){
   const P=proy();
   const bal={}; P.personas.forEach(p=>bal[p.id]=0);
@@ -451,8 +477,8 @@ function computar(){
     if(!part.length) return;
     total += g.monto;
     if(bal.hasOwnProperty(g.pagador)) bal[g.pagador] += g.monto;
-    const share = g.monto/part.length;
-    part.forEach(id=> bal[id] -= share);
+    const shares = repartoDe(g, part);
+    part.forEach(id=> bal[id] -= (shares[id]||0));
   });
   // pagos ya hechos: el que pagó reduce su deuda, el que cobró reduce su crédito
   (P.liquidaciones||[]).forEach(l=>{
@@ -632,7 +658,8 @@ function renderGastos(){
   let h=`<div class="grouphdr"><span>${ord.length} gasto${ord.length===1?"":"s"}</span><span>${fmt(total)}</span><span style="text-transform:none;letter-spacing:0">tocá para editar</span></div>`;
   h+= ord.map(g=>{ const part=(g.part||[]); const col=CCOL[g.cat]||"#64748b";
     const quienes = part.length>=P.personas.length ? "todos" : part.map(pName).join(", ");
-    const meta=`${g.cat} · pagó ${esc(pName(g.pagador))} · entre ${part.length} (${esc(quienes)})${g.fecha?" · "+fechaCorta(g.fecha):""}`;
+    const rep = g.reparto && g.reparto.modo ? ` · ⚖ ${g.reparto.modo}` : "";
+    const meta=`${g.cat} · pagó ${esc(pName(g.pagador))} · entre ${part.length} (${esc(quienes)})${rep}${g.fecha?" · "+fechaCorta(g.fecha):""}`;
     return `<div class="item" data-edit="${g.id}" style="cursor:pointer"><div style="display:flex;align-items:center;gap:10px;min-width:0">
         <span class="bar" style="background:${col}"></span>
         <div style="min-width:0"><div class="desc">${esc(g.desc||g.cat)}</div><div class="meta">${meta}</div></div></div>
@@ -765,10 +792,62 @@ function renderAjustes(){
 /* ---------- modal ---------- */
 function chipsHTML(){ return proy().personas.map(p=>{ const on=draftPart.includes(p.id);
   return `<span class="chip ${on?'on':''}" data-cid="${p.id}"><span class="box">${on?'✓':''}</span><span class="pdot" style="background:${pColor(p.id)}"></span>${esc(p.n)}</span>`; }).join(""); }
-function refreshShare(){ const monto=parseMonto($("q-monto").value); const n=draftPart.length;
-  $("q-share").textContent = (monto>0&&n>0)? `${fmt(monto)} ÷ ${n} = ${fmt(monto/n)} c/u` : (n>0?`Se divide entre ${n}.`:"Tildá al menos una persona."); }
+
+/* --- reparto: helpers de pesos --- */
+function pesoNum(id){ const v=parseMonto(draftPesos[id]); return isNaN(v)?0:v; }
+function sumaPesos(){ return draftPart.reduce((a,id)=>a+pesoNum(id),0); }
+// Al cambiar de modo: precargo un reparto YA cuadrado (igual) para que arranque prolijo.
+function initPesos(modo){
+  const n=draftPart.length||1, monto=parseMonto($("q-monto").value)||0, nuevo={};
+  if(modo==="partes"){ draftPart.forEach(id=>nuevo[id]="1"); }
+  else if(modo==="exacto"){
+    if(!monto){ draftPart.forEach(id=>nuevo[id]=""); }
+    else { const base=Math.round(monto/n); draftPart.forEach((id,i)=> nuevo[id]=String(i===0 ? Math.round(monto-base*(n-1)) : base)); }  // el resto va al 1º → suma exacta
+  } else if(modo==="porcentaje"){
+    const base=Math.floor((100/n)*10)/10; draftPart.forEach((id,i)=> nuevo[id]=String(i===0 ? Math.round((100-base*(n-1))*10)/10 : base));  // ídem, cierra en 100
+  }
+  draftPesos=nuevo;
+}
+// Al tildar/destildar personas: doy un default a los nuevos y saco los que salieron.
+function ajustarPesosPorChips(){
+  if(draftModo==="igual") return;
+  const n=draftPart.length||1;
+  draftPart.forEach(id=>{ if(draftPesos[id]==null||draftPesos[id]===""){
+    draftPesos[id]= draftModo==="partes" ? "1" : (draftModo==="exacto" ? "" : String(Math.round((100/n)*10)/10)); } });
+  Object.keys(draftPesos).forEach(id=>{ if(!draftPart.includes(id)) delete draftPesos[id]; });
+}
+function pintarModos(){ $("q-modes").querySelectorAll("button").forEach(b=>b.classList.toggle("on", b.dataset.modo===draftModo)); }
+function pintarPesos(){
+  const cont=$("q-pesos");
+  if(draftModo==="igual" || !draftPart.length){ cont.innerHTML=""; return; }
+  const suf = draftModo==="porcentaje" ? "%" : (draftModo==="exacto" ? "$" : "×");
+  cont.innerHTML = draftPart.map(id=>{ const p=proy().personas.find(x=>x.id===id); if(!p) return "";
+    return `<div class="peso-row"><span class="pn"><span class="pdot" style="background:${pColor(id)}"></span>${esc(p.n)}</span>
+      <span class="suf">${suf}</span><input type="text" inputmode="decimal" data-peso="${id}" value="${draftPesos[id]!=null?draftPesos[id]:""}"></div>`; }).join("");
+  cont.querySelectorAll("input[data-peso]").forEach(inp=>inp.addEventListener("input",()=>{ draftPesos[inp.dataset.peso]=inp.value.trim(); refreshShare(); }));
+}
+function refreshShare(){
+  const monto=parseMonto($("q-monto").value)||0, n=draftPart.length, el=$("q-share");
+  if(!n){ el.textContent="Tildá al menos una persona."; el.style.color="var(--muted)"; return; }
+  if(draftModo==="igual"){ el.style.color="var(--muted)";
+    el.textContent = monto>0 ? `${fmt(monto)} ÷ ${n} = ${fmt(monto/n)} c/u` : `En partes iguales entre ${n}.`; return; }
+  if(draftModo==="partes"){ const s=sumaPesos();
+    if(s<=0){ el.style.color="var(--red)"; el.textContent="Asigná al menos una parte."; return; }
+    el.style.color="var(--muted)";
+    el.textContent = monto>0 ? `${s} parte${s===1?"":"s"} · c/parte ${fmt(monto/s)}` : `${s} parte${s===1?"":"s"} en total.`; return; }
+  if(draftModo==="exacto"){ const s=sumaPesos(), dif=monto-s;
+    if(Math.abs(dif)<=0.5){ el.style.color="var(--ok)"; el.textContent=`✓ Cuadra: ${fmt(s)} de ${fmt(monto)}`; }
+    else if(dif>0){ el.style.color="var(--red)"; el.textContent=`Asignado ${fmt(s)} de ${fmt(monto)} · faltan ${fmt(dif)}`; }
+    else { el.style.color="var(--red)"; el.textContent=`Asignado ${fmt(s)} de ${fmt(monto)} · te pasaste ${fmt(-dif)}`; }
+    return; }
+  const sr=Math.round(sumaPesos()*10)/10, dif=Math.round((100-sr)*10)/10;   // porcentaje (comparo redondeado a 1 decimal)
+  if(Math.abs(dif)<0.05){ el.style.color="var(--ok)"; el.textContent="✓ Suma 100%"; }
+  else if(dif>0){ el.style.color="var(--red)"; el.textContent=`Suma ${sr}% · faltan ${dif}%`; }
+  else { el.style.color="var(--red)"; el.textContent=`Suma ${sr}% · te pasaste ${-dif}%`; }
+}
 function pintarChips(){ $("q-chips").innerHTML=chipsHTML();
-  $("q-chips").querySelectorAll(".chip").forEach(el=>el.onclick=()=>{ const id=el.dataset.cid; const i=draftPart.indexOf(id); if(i>=0)draftPart.splice(i,1); else draftPart.push(id); pintarChips(); refreshShare(); }); }
+  $("q-chips").querySelectorAll(".chip").forEach(el=>el.onclick=()=>{ const id=el.dataset.cid; const i=draftPart.indexOf(id); if(i>=0)draftPart.splice(i,1); else draftPart.push(id);
+    ajustarPesosPorChips(); pintarChips(); pintarPesos(); refreshShare(); }); }
 function fillSelects(){ $("q-cat").innerHTML=CATS.map(c=>`<option>${c}</option>`).join(""); $("q-pagador").innerHTML=proy().personas.map(p=>`<option value="${p.id}">${esc(p.n)}</option>`).join(""); }
 function abrirModal(id){
   const P=proy();
@@ -777,12 +856,14 @@ function abrirModal(id){
   if(id){ const g=P.gastos.find(x=>x.id===id); if(!g) return; editId=id; $("m-title").textContent="Editar gasto";
     $("q-monto").value=g.monto; $("q-desc").value=g.desc||""; $("q-cat").value=g.cat||"Otros"; $("q-fecha").value=g.fecha||hoy();
     draftPart=(g.part||[]).filter(pid=>P.personas.some(p=>p.id===pid)); draftPag=P.personas.some(p=>p.id===g.pagador)?g.pagador:P.personas[0].id;
+    if(g.reparto && g.reparto.modo){ draftModo=g.reparto.modo; draftPesos={}; Object.keys(g.reparto.pesos||{}).forEach(pid=>draftPesos[pid]=String(g.reparto.pesos[pid])); }
+    else { draftModo="igual"; draftPesos={}; }
     $("q-add").textContent="✓ Guardar cambios";
   } else { editId=null; $("m-title").textContent="Nuevo gasto"; $("q-monto").value=""; $("q-desc").value=""; $("q-cat").selectedIndex=0; $("q-fecha").value=hoy();
-    draftPart=P.personas.map(p=>p.id);
+    draftPart=P.personas.map(p=>p.id); draftModo="igual"; draftPesos={};
     const yoMatch=P.personas.find(p=>(p.n||"").trim().toLowerCase()===(YO&&YO.nombre||"").trim().toLowerCase());
     draftPag=yoMatch?yoMatch.id:P.personas[0].id; $("q-add").textContent="＋ Agregar"; }
-  $("q-pagador").value=draftPag; pintarChips(); refreshShare(); $("modal").classList.add("open"); $("q-monto").focus();
+  $("q-pagador").value=draftPag; pintarModos(); pintarChips(); pintarPesos(); refreshShare(); $("modal").classList.add("open"); $("q-monto").focus();
 }
 function cerrarModal(){ $("modal").classList.remove("open"); editId=null; }
 
@@ -974,20 +1055,27 @@ $("grupoModal").onclick=e=>{ if(e.target.id==="grupoModal") cerrarGrupo(); };
 $("fab").onclick=()=>abrirModal(null);
 $("m-close").onclick=cerrarModal;
 $("modal").onclick=e=>{ if(e.target.id==="modal") cerrarModal(); };
-$("q-all").onclick=()=>{ draftPart=proy().personas.map(p=>p.id); pintarChips(); refreshShare(); };
-$("q-none").onclick=()=>{ draftPart=[]; pintarChips(); refreshShare(); };
+$("q-all").onclick=()=>{ draftPart=proy().personas.map(p=>p.id); ajustarPesosPorChips(); pintarChips(); pintarPesos(); refreshShare(); };
+$("q-none").onclick=()=>{ draftPart=[]; ajustarPesosPorChips(); pintarChips(); pintarPesos(); refreshShare(); };
+$("q-modes").querySelectorAll("button").forEach(b=>b.onclick=()=>{ draftModo=b.dataset.modo; if(draftModo!=="igual") initPesos(draftModo); pintarModos(); pintarPesos(); refreshShare(); });
 $("q-monto").addEventListener("input",refreshShare);
 $("q-pagador").onchange=()=>{ draftPag=$("q-pagador").value; };
 $("q-add").onclick=()=>{
   const P=proy(); const monto=parseMonto($("q-monto").value);
   if(!monto||monto<=0){ $("q-monto").focus(); return; }
   if(!draftPart.length){ alert("Tildá al menos una persona entre quienes se divide."); return; }
+  // --- validación del reparto (nada de descuadres silenciosos) ---
+  if(draftModo==="exacto"){ const s=sumaPesos(); if(Math.abs(monto-s)>0.5){ alert("Los montos exactos suman "+fmt(s)+" y el gasto es "+fmt(monto)+". Ajustá para que cuadre."); return; } }
+  else if(draftModo==="porcentaje"){ const s=Math.round(sumaPesos()*10)/10; if(Math.abs(100-s)>0.05){ alert("Los porcentajes suman "+s+"% y tienen que dar 100%."); return; } }
+  else if(draftModo==="partes"){ if(sumaPesos()<=0){ alert("Asigná al menos una parte."); return; } }
+  let reparto=null;
+  if(draftModo!=="igual"){ const pesos={}; draftPart.forEach(id=>pesos[id]=pesoNum(id)); reparto={modo:draftModo, pesos}; }
   const pag=$("q-pagador").value;
-  if(editId){ const g=P.gastos.find(x=>x.id===editId); if(g){ g.monto=monto; g.desc=$("q-desc").value.trim(); g.cat=$("q-cat").value; g.fecha=$("q-fecha").value||hoy(); g.pagador=pag; g.part=[...draftPart];
+  if(editId){ const g=P.gastos.find(x=>x.id===editId); if(g){ g.monto=monto; g.desc=$("q-desc").value.trim(); g.cat=$("q-cat").value; g.fecha=$("q-fecha").value||hoy(); g.pagador=pag; g.part=[...draftPart]; g.reparto=reparto;
       sync(P,"DELETE","/p/"+P.id+"/gasto/"+g.id);
-      sync(P,"POST","/p/"+P.id+"/gasto",{id:g.id, monto:g.monto, descripcion:g.desc, categoria:g.cat, fecha:g.fecha, pagador:g.pagador, participantes:g.part}); } }
-  else { const ng={id:newId(), monto, desc:$("q-desc").value.trim(), cat:$("q-cat").value, fecha:$("q-fecha").value||hoy(), pagador:pag, part:[...draftPart]}; P.gastos.unshift(ng);
-      sync(P,"POST","/p/"+P.id+"/gasto",{id:ng.id, monto:ng.monto, descripcion:ng.desc, categoria:ng.cat, fecha:ng.fecha, pagador:ng.pagador, participantes:ng.part}); }
+      sync(P,"POST","/p/"+P.id+"/gasto",{id:g.id, monto:g.monto, descripcion:g.desc, categoria:g.cat, fecha:g.fecha, pagador:g.pagador, participantes:g.part, reparto:g.reparto}); } }
+  else { const ng={id:newId(), monto, desc:$("q-desc").value.trim(), cat:$("q-cat").value, fecha:$("q-fecha").value||hoy(), pagador:pag, part:[...draftPart], reparto}; P.gastos.unshift(ng);
+      sync(P,"POST","/p/"+P.id+"/gasto",{id:ng.id, monto:ng.monto, descripcion:ng.desc, categoria:ng.cat, fecha:ng.fecha, pagador:ng.pagador, participantes:ng.part, reparto:ng.reparto}); }
   persist(); cerrarModal(); vista="resumen"; render();
 };
 
