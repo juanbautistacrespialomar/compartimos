@@ -1,9 +1,16 @@
 /* Service Worker — Compartimos
    - HTML / navegación: network-first (si hay red, siempre la última versión; cache solo offline).
    - Resto de assets: cache-first.
-   Para forzar una actualización limpia, subí el número de versión del cache. */
 
-const CACHE = "compartimos-v4";
+   ┌───────────────────────────────────────────────────────────────┐
+   │  PARA PUBLICAR UNA ACTUALIZACIÓN A TODOS:                       │
+   │  cambiá el número de VERSION de abajo (v6 -> v7 -> v8 ...)      │
+   │  y subí este archivo + el index.html a GitHub.                 │
+   │  A cada persona le va a aparecer el cartel "Hay versión nueva". │
+   └───────────────────────────────────────────────────────────────┘ */
+
+const VERSION = "v6";
+const CACHE = "compartimos-" + VERSION;
 const ASSETS = [
   "./",
   "./index.html",
@@ -14,11 +21,9 @@ const ASSETS = [
 ];
 
 self.addEventListener("install", e => {
-  e.waitUntil(
-    caches.open(CACHE)
-      .then(c => c.addAll(ASSETS))
-      .then(() => self.skipWaiting())
-  );
+  // NO llamamos skipWaiting acá a propósito: el SW nuevo queda "en espera"
+  // hasta que la persona toque "Actualizar" en el cartel.
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
 });
 
 self.addEventListener("activate", e => {
@@ -29,14 +34,18 @@ self.addEventListener("activate", e => {
   );
 });
 
+// La app le manda este mensaje cuando la persona toca "Actualizar":
+// activamos el SW nuevo de inmediato y la app se recarga sola.
+self.addEventListener("message", e => {
+  if (e.data && e.data.type === "SKIP_WAITING") self.skipWaiting();
+});
+
 self.addEventListener("fetch", e => {
   const req = e.request;
   if (req.method !== "GET") return;
 
-  // Las llamadas al servidor de datos (otro dominio: el Worker/D1) NUNCA se cachean:
-  // siempre a la red, para tener datos en vivo. El cache es solo para los archivos de la app.
   const url = new URL(req.url);
-  if (url.origin !== location.origin) return;
+  if (url.origin !== location.origin) return;   // el Worker/D1 nunca se cachea
 
   if (req.mode === "navigate") {
     e.respondWith(
