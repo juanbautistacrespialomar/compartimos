@@ -2,9 +2,9 @@
 <html lang="es-AR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Compartimos</title>
-<meta name="theme-color" content="#020617">
+<meta name="theme-color" content="#0a0f1a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -13,12 +13,13 @@
 <link rel="apple-touch-icon" href="Logo.png">
 <link rel="manifest" href="manifest.json">
 <style>
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
   :root {
-    --bg:#020617; --card:#0f172a; --card2:#1e293b; --border:#1e293b;
-    --txt:#f1f5f9; --muted:#64748b; --green:#10b981; --amber:#f59e0b; --sky:#38bdf8; --red:#f87171; --violet:#a855f7;
+    --bg:#0a0f1a; --card:#131c2b; --card2:#1e2b3e; --border:#25344a;
+    --txt:#f1f5f9; --muted:#64748b; --green:#10b981; --teal:#2dd4bf; --amber:#fbbf24; --sky:#38bdf8; --red:#f87171; --violet:#a855f7;
   }
-  html,body { margin:0; background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  html { touch-action:manipulation; }
+  html,body { margin:0; background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; touch-action:manipulation; }
   body { min-height:100dvh; box-sizing:border-box; padding-top:env(safe-area-inset-top); }
   .wrap { width:100%; max-width:600px; margin:0 auto; box-sizing:border-box; min-height:100dvh; padding:16px 16px calc(80px + env(safe-area-inset-bottom)); }
   .row { display:flex; align-items:center; }
@@ -113,6 +114,17 @@
   .modal label.tt { font-size:11px; color:var(--muted); display:block; margin:10px 0 5px; }
   @media(min-width:600px){ .modal-bg{ align-items:center; } .modal{ border-radius:16px; } }
   text { font-family:system-ui,sans-serif; }
+  /* --- Bienvenida (pide nombre) --- */
+  .welcome-bg { position:fixed; inset:0; z-index:200; background:var(--bg); display:none; align-items:center; justify-content:center; padding:24px; }
+  .welcome-bg.open { display:flex; }
+  .welcome-card { width:100%; max-width:360px; text-align:center; animation:viewin .4s ease; }
+  .welcome-logo { width:76px; height:76px; border-radius:20px; object-fit:cover; margin:0 auto 18px; display:block; box-shadow:0 10px 30px rgba(16,185,129,.25); }
+  .welcome-card h2 { font-size:24px; margin:0 0 6px; font-weight:700; }
+  .welcome-card p { color:var(--muted); font-size:14px; line-height:1.55; margin:0 0 22px; }
+  .welcome-card input { text-align:center; font-size:17px; padding:14px; margin-bottom:14px; border-radius:12px; }
+  .welcome-card .btn-add { width:100%; padding:14px; font-size:15px; border-radius:12px; }
+  .g-save { width:100%; padding:13px; font-size:15px; font-weight:600; border-radius:12px; margin-top:6px; background:var(--green); color:#fff; display:flex; align-items:center; justify-content:center; gap:6px; }
+  .g-save:active { background:#059669; }
 </style>
 </head>
 <body>
@@ -182,6 +194,16 @@
   </div>
 </div>
 
+<div id="welcome" class="welcome-bg">
+  <div class="welcome-card">
+    <img class="welcome-logo" src="Logo.png" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{textContent:'💸',style:'font-size:56px;margin:0 auto 18px'}))">
+    <h2>¡Bienvenido!</h2>
+    <p>¿Cómo te llamás? Así tus amigos ven quién cargó cada gasto.</p>
+    <input type="text" id="w-nombre" placeholder="Tu nombre" autocomplete="name" enterkeyhint="done">
+    <button class="btn btn-add" id="w-ok">Empezar →</button>
+  </div>
+</div>
+
 <script>
 "use strict";
 const CATS = ["Cancha","Comida","Bebida","Supermercado","Transporte","Entradas","Alojamiento","Servicios","Regalos","Otros"];
@@ -206,7 +228,8 @@ function norm(s){
   }
   s.v=3;
   if(!s.proyectos.length) s.proyectos.push({id:newId(), n:"Mi grupo", personas:[], gastos:[], liquidaciones:[]});
-  s.proyectos.forEach(p=>{ if(!p.id)p.id=newId(); if(!p.n)p.n="Proyecto"; if(!Array.isArray(p.personas))p.personas=[]; if(!Array.isArray(p.gastos))p.gastos=[]; if(!Array.isArray(p.liquidaciones))p.liquidaciones=[]; if(!("remoto" in p))p.remoto=null; if(!("emoji" in p))p.emoji=null; });
+  s.proyectos.forEach(p=>{ if(!p.id)p.id=newId(); if(!p.n)p.n="Proyecto"; if(!Array.isArray(p.personas))p.personas=[]; if(!Array.isArray(p.gastos))p.gastos=[]; if(!Array.isArray(p.liquidaciones))p.liquidaciones=[]; if(!("remoto" in p))p.remoto=null; if(!("emoji" in p))p.emoji=null; if(!("cerrado" in p))p.cerrado=false; });
+  if(!s.proyectos.some(p=>p.id===s.activo && !p.cerrado)){ const abierto=s.proyectos.find(p=>!p.cerrado); if(abierto) s.activo=abierto.id; }
   if(!s.proyectos.some(p=>p.id===s.activo)) s.activo=s.proyectos[0].id;
   return s;
 }
@@ -216,11 +239,19 @@ let st = norm(load(KEY,null)); save(KEY,st);
 // --- Identidad liviana: quién soy en los grupos compartidos ---
 const KEY_YO = "compartimos.yo";
 let YO = load(KEY_YO, null);
-if(!YO || !YO.nombre){
-  let n = prompt("¿Cómo te llamás? (así tus amigos ven quién cargó cada gasto)");
-  YO = { id: newId(), nombre: (n||"").trim() || "Yo" };
-  save(KEY_YO, YO);
+function pedirNombre(){
+  const w=$("welcome"), inp=$("w-nombre"), ok=$("w-ok");
+  w.classList.add("open");
+  setTimeout(()=>inp.focus(),150);
+  const guardar=()=>{
+    YO = { id:(YO&&YO.id)||newId(), nombre:(inp.value||"").trim()||"Yo" };
+    save(KEY_YO, YO);
+    w.classList.remove("open");
+  };
+  ok.onclick=guardar;
+  inp.onkeydown=e=>{ if(e.key==="Enter") guardar(); };
 }
+if(!YO || !YO.nombre){ YO = YO||{}; document.addEventListener("DOMContentLoaded",pedirNombre); if(document.readyState!=="loading") pedirNombre(); }
 
 // --- Conexión con el servidor (base D1 vía Worker) ---
 const API = "https://compartimos-api.juanbautistacrespialomar.workers.dev";
@@ -372,7 +403,7 @@ function donut(data,total){
 }
 
 /* ---------- render ---------- */
-function renderProjBar(){ $("projSel").innerHTML = st.proyectos.map(p=>`<option value="${p.id}" ${p.id===st.activo?"selected":""}>${esc(p.n)}</option>`).join(""); const P=proy(); if($("projEmoji")) $("projEmoji").textContent = P.emoji || "📁"; }
+function renderProjBar(){ $("projSel").innerHTML = st.proyectos.filter(p=>!p.cerrado).map(p=>`<option value="${p.id}" ${p.id===st.activo?"selected":""}>${esc(p.n)}</option>`).join(""); const P=proy(); if($("projEmoji")) $("projEmoji").textContent = P.emoji || "📁"; }
 
 function render(){
   renderProjBar();
@@ -516,7 +547,8 @@ function renderGrupoModal(){
      <div style="margin:6px 0 4px">${personasHtml}</div>
      <div class="row" style="gap:8px;margin-bottom:16px"><input id="np" type="text" placeholder="Nombre"><button class="btn btn-add" id="addp" style="width:auto;padding:10px 16px">＋</button></div>
      <label style="font-size:11px;color:var(--muted)">🔗 Compartir</label>
-     <div style="margin-top:6px">${compartirHtml}</div>`;
+     <div style="margin-top:6px">${compartirHtml}</div>
+     <button class="btn g-save" id="g-guardar" style="margin-top:18px">✓ Guardar y cerrar</button>`;
 
   $("g-nombre").onchange=()=>{ const v=$("g-nombre").value.trim(); if(v){ proy().n=v; persist(); render(); renderGrupoModal(); } };
   $("grupoBody").querySelectorAll(".emoji-pick").forEach(b=>b.onclick=()=>{ proy().emoji=b.dataset.emoji; persist(); render(); renderGrupoModal(); });
@@ -535,18 +567,33 @@ function renderGrupoModal(){
   $("addp").onclick=add; $("np").addEventListener("keydown",e=>{ if(e.key==="Enter") add(); });
   if($("compartirBtn")) $("compartirBtn").onclick=async()=>{ await compartirProyecto(); renderGrupoModal(); };
   if($("copiarLink")) $("copiarLink").onclick=()=>{ const i=$("linkGrupo"); i.select(); i.setSelectionRange(0,9999); try{navigator.clipboard.writeText(i.value);}catch(e){document.execCommand("copy");} alert("Link copiado ✓"); };
+  $("g-guardar").onclick=()=>{
+    const pend=$("np")&&$("np").value.trim();
+    if(pend){ const P=proy(); const np={id:newId(), n:pend}; P.personas.push(np); sync(P,"POST","/p/"+P.id+"/persona",{id:np.id, nombre:np.n}); persist(); render(); }
+    cerrarGrupo();
+  };
 }
 function abrirGrupo(){ renderGrupoModal(); $("grupoModal").classList.add("open"); }
 function cerrarGrupo(){ $("grupoModal").classList.remove("open"); }
 
 function renderAjustes(){
   const P=proy();
+  const cerrados = st.proyectos.filter(p=>p.cerrado);
+  const liquidadosHtml = !cerrados.length ? "" :
+    `<div class="panel"><p class="ptitle">📦 Grupos liquidados</p>
+       <p style="font-size:11px;color:var(--muted);margin:0 0 10px">No aparecen en el inicio. Reabrilos si necesitás retocar algo.</p>
+       ${cerrados.map(p=>`<div class="person-row" style="justify-content:space-between">
+          <span style="display:flex;align-items:center;gap:8px;min-width:0"><span style="font-size:16px">${p.emoji||"📁"}</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.n)}</span></span>
+          <button class="btn btn-ghost mini" data-reabrir="${p.id}">↺ Reabrir</button>
+        </div>`).join("")}</div>`;
   $("content").innerHTML =
     `<div class="panel"><p class="ptitle">📁 Proyecto actual</p>
        <label style="font-size:11px;color:var(--muted)">Nombre</label>
        <input id="projName" value="${esc(P.n)}" style="margin:5px 0 10px">
        <button class="btn btn-ghost" id="projDup" style="margin-bottom:8px">⧉ Duplicar (mismas personas, sin gastos)</button>
+       <button class="btn btn-ghost" id="projClose" style="margin-bottom:8px">✓ Cerrar grupo (marcarlo como liquidado)</button>
        <button class="btn btn-ghost danger" id="projDel">🗑 Borrar este grupo</button></div>
+     ${liquidadosHtml}
      <div class="panel"><p class="ptitle">⚙️ Datos y backup</p>
        <button class="btn btn-ghost" id="backup" style="margin-bottom:8px">⬇️ Descargar backup (todos los proyectos)</button>
        <button class="btn btn-ghost" id="importBtn" style="margin-bottom:8px">⬆️ Restaurar desde backup</button>
@@ -554,8 +601,17 @@ function renderAjustes(){
        <button class="btn btn-ghost danger" id="reset">↺ Borrar TODO y empezar de cero</button>
        <p style="font-size:11px;color:var(--muted);margin:8px 0 0">El backup guarda todos los proyectos en un archivo JSON.</p></div>`;
   $("projName").onchange=()=>{ const v=$("projName").value.trim(); if(v){ proy().n=v; persist(); render(); } };
-  $("projDup").onclick=()=>{ const src=proy(); const nuevo={id:newId(), n:src.n+" (copia)", emoji:src.emoji, personas:src.personas.map(p=>({...p})), gastos:[], liquidaciones:[]}; st.proyectos.push(nuevo); st.activo=nuevo.id; persist(); vista="gastos"; render(); };
-  $("projDel").onclick=()=>{ if(!confirm(`¿Borrar el proyecto "${P.n}" con todo adentro?`)) return; st.proyectos=st.proyectos.filter(p=>p.id!==P.id); if(!st.proyectos.length) st.proyectos.push({id:newId(),n:"Mi grupo",personas:[],gastos:[],liquidaciones:[]}); st.activo=st.proyectos[0].id; persist(); vista="resumen"; render(); };
+  $("projDup").onclick=()=>{ const src=proy(); const nuevo={id:newId(), n:src.n+" (copia)", emoji:src.emoji, cerrado:false, personas:src.personas.map(p=>({...p})), gastos:[], liquidaciones:[]}; st.proyectos.push(nuevo); st.activo=nuevo.id; persist(); vista="gastos"; render(); };
+  $("projClose").onclick=()=>{
+    if(!confirm(`¿Cerrar "${P.n}"? Deja de aparecer en el inicio y queda guardado en "Grupos liquidados". Podés reabrirlo cuando quieras.`)) return;
+    P.cerrado=true;
+    const abierto=st.proyectos.find(p=>!p.cerrado);
+    if(abierto){ st.activo=abierto.id; }
+    else { const nuevo={id:newId(),n:"Mi grupo",emoji:null,cerrado:false,personas:[],gastos:[],liquidaciones:[]}; st.proyectos.push(nuevo); st.activo=nuevo.id; }
+    persist(); vista="gastos"; render();
+  };
+  $("projDel").onclick=()=>{ if(!confirm(`¿Borrar el proyecto "${P.n}" con todo adentro?`)) return; st.proyectos=st.proyectos.filter(p=>p.id!==P.id); if(!st.proyectos.some(p=>!p.cerrado)) st.proyectos.push({id:newId(),n:"Mi grupo",emoji:null,cerrado:false,personas:[],gastos:[],liquidaciones:[]}); st.activo=st.proyectos.find(p=>!p.cerrado).id; persist(); vista="gastos"; render(); };
+  $("content").querySelectorAll("[data-reabrir]").forEach(b=>b.onclick=()=>{ const p=st.proyectos.find(x=>x.id===b.dataset.reabrir); if(p){ p.cerrado=false; st.activo=p.id; persist(); vista="gastos"; render(); } });
   $("backup").onclick=()=>{ const data={app:"DividirGastos",fecha:new Date().toISOString(),st}; const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"})); a.download="backup_dividir_"+hoy()+".json"; a.click(); URL.revokeObjectURL(a.href); };
   $("importBtn").onclick=()=>$("importFile").click();
   $("importFile").onchange=(e)=>{ const file=e.target.files[0]; if(!file) return; const r=new FileReader();
@@ -603,85 +659,129 @@ function exportar(){
   const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"})); a.download="dividir_"+P.n.replace(/[^\w]+/g,"_")+"_"+hoy()+".csv"; a.click(); URL.revokeObjectURL(a.href);
 }
 
-/* ---------- export FOTO (canvas, sin librerías) ---------- */
+/* ---------- export FOTO (canvas, sin librerías) — rediseño ---------- */
 function exportarFoto(){
   const P=proy(); const {bal,total}=computar(); const pagos=liquidar(bal);
-  // datos de la torta: gastos por categoría
   const m={}; P.gastos.forEach(g=>m[g.cat]=(m[g.cat]||0)+g.monto);
   const tdata=Object.entries(m).map(([k,v])=>({name:k,value:v,color:CCOL[k]||"#64748b"})).sort((a,b)=>b.value-a.value);
   const ttotal=tdata.reduce((s,x)=>s+x.value,0);
 
-  const sc=2, W=720, padX=44, rowH=70;
-  const headH=150, pagosTitleH=44, sepH=28, gastosTitleH=44, footH=72;
-  const pagosH = pagos.length ? pagos.length*rowH : 56;
-  const donaH = Math.max(200, tdata.length*32 + 18);
-  const H = headH + pagosTitleH + pagosH + sepH + gastosTitleH + donaH + footH;
+  // paleta activa (respeta la gama elegida en :root)
+  const cs=getComputedStyle(document.documentElement);
+  const cv_=k=>cs.getPropertyValue(k).trim();
+  const COL={ bg:cv_("--bg")||"#0a0f1a", card:cv_("--card")||"#131c2b", card2:cv_("--card2")||"#1e2b3e",
+              border:cv_("--border")||"#25344a", txt:cv_("--txt")||"#f1f5f9", muted:cv_("--muted")||"#64748b",
+              green:cv_("--green")||"#10b981" };
+  const sub="#94a3b8";
+  const ini=s=>((s||"?").trim()[0]||"?").toUpperCase();
+
+  // ---- geometría ----
+  const sc=3, W=760, M=36, pad=34, cW=W-2*M, iW=cW-2*pad, iX=M+pad;
+  const hHead=104, hStatRow=92, hGap=26, hTitle=40;
+  const hTransfRow=64, hTransfEmpty=58, hLegRow=44;
+  const donaD=170;
+  const hTransf = pagos.length ? pagos.length*hTransfRow : hTransfEmpty;
+  const hDona   = Math.max(donaD+8, tdata.length*hLegRow + 8);
+  const hFoot=70;
+  const cardH = pad + hHead + hStatRow + hGap + hTitle + hTransf + hGap + hTitle + hDona + hFoot + pad;
+  const H = cardH + 2*M;
 
   const cv=document.createElement("canvas"); cv.width=W*sc; cv.height=H*sc;
   const ctx=cv.getContext("2d"); ctx.scale(sc,sc);
-  ctx.fillStyle="#0f172a"; ctx.fillRect(0,0,W,H);
-  ctx.fillStyle="#10b981"; ctx.fillRect(0,0,W,6);
 
-  // header
-  ctx.textBaseline="alphabetic";
-  ctx.fillStyle="#f1f5f9"; ctx.font="700 30px system-ui,sans-serif"; ctx.fillText(P.n, padX, 64);
-  ctx.fillStyle="#64748b"; ctx.font="400 15px system-ui,sans-serif"; ctx.fillText(new Date().toLocaleDateString("es-AR"), padX, 92);
-  ctx.fillStyle="#1e293b"; ctx.fillRect(padX,116,W-padX*2,1);
+  // helpers
+  const rr=(x,y,w,h,r)=>{ r=Math.min(r,w/2,h/2); ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); };
+  const avatar=(x,cy,rad,color,label)=>{ ctx.fillStyle=color; ctx.beginPath(); ctx.arc(x+rad,cy,rad,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle="#0a0a0a"; ctx.font="700 "+Math.round(rad*1.05)+"px system-ui,sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(ini(label),x+rad,cy+1); ctx.textAlign="left"; };
 
-  let y=headH;
+  // fondo + tarjeta
+  ctx.fillStyle=COL.bg; ctx.fillRect(0,0,W,H);
+  rr(M,M,cW,cardH,22); ctx.fillStyle=COL.card; ctx.fill();
+  rr(M,M,cW,6,3); ctx.fillStyle=COL.green; ctx.fill();   // banda de acento
 
-  // ---- sección: quién le paga a quién ----
-  ctx.textBaseline="alphabetic"; ctx.fillStyle="#cbd5e1"; ctx.font="700 18px system-ui,sans-serif";
-  ctx.fillText("Quién le paga a quién", padX, y+10);
-  y+=pagosTitleH;
+  let y=M+pad;
+
+  // ---- header ----
+  rr(iX,y,58,58,15); ctx.fillStyle=COL.green; ctx.fill();
+  ctx.fillStyle="#0a0a0a"; ctx.font="30px system-ui,sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(P.emoji||"💸", iX+29, y+30); ctx.textAlign="left";
+  ctx.textBaseline="alphabetic"; ctx.fillStyle=COL.txt; ctx.font="700 30px system-ui,sans-serif"; ctx.fillText(P.n, iX+74, y+27);
+  const fechaTxt=new Date().toLocaleDateString("es-AR",{day:"numeric",month:"long",year:"numeric"});
+  ctx.font="500 13px system-ui,sans-serif"; const fw=ctx.measureText(fechaTxt).width;
+  rr(iX+74, y+38, fw+22, 24, 12); ctx.fillStyle=COL.card2; ctx.fill();
+  ctx.fillStyle=sub; ctx.textBaseline="middle"; ctx.fillText(fechaTxt, iX+85, y+51); ctx.textBaseline="alphabetic";
+  y+=hHead;
+
+  // ---- stat cards ----
+  const prom = P.gastos.length ? total/Math.max(P.personas.length,1) : 0;
+  const stats=[["Total gastado",fmt(total),COL.green],["Personas",String(P.personas.length),COL.txt],["Promedio c/u",fmt(prom),COL.txt]];
+  const gS=14, wS=(iW-gS*2)/3;
+  stats.forEach((s,i)=>{ const x=iX+i*(wS+gS);
+    rr(x,y,wS,72,14); ctx.fillStyle=COL.card2; ctx.fill();
+    ctx.fillStyle=COL.muted; ctx.font="500 12px system-ui,sans-serif"; ctx.textBaseline="alphabetic"; ctx.fillText(s[0],x+14,y+27);
+    ctx.fillStyle=s[2]; ctx.font="700 20px system-ui,sans-serif"; ctx.fillText(s[1],x+14,y+54); });
+  y+=hStatRow+hGap;
+
+  // ---- transferencias ----
+  ctx.fillStyle=COL.txt; ctx.font="700 18px system-ui,sans-serif"; ctx.textBaseline="alphabetic";
+  ctx.fillText("💳  Quién le transfiere a quién", iX, y+22); y+=hTitle;
   if(!pagos.length){
-    ctx.fillStyle="#10b981"; ctx.font="600 18px system-ui,sans-serif"; ctx.textBaseline="middle";
-    ctx.fillText("Están todos a mano. Nadie debe nada.", padX, y+28);
+    rr(iX,y,iW,hTransfEmpty-10,14); ctx.fillStyle=COL.card2; ctx.fill();
+    ctx.fillStyle=COL.green; ctx.font="600 16px system-ui,sans-serif"; ctx.textBaseline="middle"; ctx.textAlign="center";
+    ctx.fillText("✓ Están todos a mano. Nadie debe nada.", iX+iW/2, y+(hTransfEmpty-10)/2); ctx.textAlign="left"; ctx.textBaseline="alphabetic";
+    y+=hTransfEmpty;
   } else {
     pagos.forEach(p=>{
-      const cy=y+rowH/2; ctx.textBaseline="middle"; let x=padX;
-      ctx.fillStyle=pColor(p.de); ctx.beginPath(); ctx.arc(x+7,cy,7,0,Math.PI*2); ctx.fill(); x+=22;
-      ctx.fillStyle="#f1f5f9"; ctx.font="600 18px system-ui,sans-serif"; ctx.fillText(pName(p.de),x,cy); x+=ctx.measureText(pName(p.de)).width+12;
-      ctx.strokeStyle="#475569"; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x,cy); ctx.lineTo(x+22,cy); ctx.stroke();
-      ctx.fillStyle="#475569"; ctx.beginPath(); ctx.moveTo(x+22,cy); ctx.lineTo(x+16,cy-5); ctx.lineTo(x+16,cy+5); ctx.fill(); x+=34;
-      ctx.fillStyle=pColor(p.a); ctx.beginPath(); ctx.arc(x+7,cy,7,0,Math.PI*2); ctx.fill(); x+=22;
-      ctx.fillStyle="#f1f5f9"; ctx.font="600 18px system-ui,sans-serif"; ctx.fillText(pName(p.a),x,cy);
-      ctx.fillStyle="#10b981"; ctx.font="700 19px system-ui,sans-serif"; ctx.textAlign="right"; ctx.fillText(fmt(p.monto), W-padX, cy); ctx.textAlign="left";
-      ctx.fillStyle="#16202e"; ctx.fillRect(padX, y+rowH-1, W-padX*2, 1);
-      y+=rowH;
+      rr(iX,y,iW,hTransfRow-10,14); ctx.fillStyle=COL.card2; ctx.fill();
+      const cy=y+(hTransfRow-10)/2; let x=iX+16; ctx.textBaseline="middle";
+      avatar(x,cy,14,pColor(p.de),pName(p.de)); x+=36;
+      ctx.fillStyle=COL.txt; ctx.font="600 16px system-ui,sans-serif"; ctx.fillText(pName(p.de),x,cy); x+=ctx.measureText(pName(p.de)).width+14;
+      ctx.strokeStyle=COL.muted; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x,cy); ctx.lineTo(x+20,cy); ctx.stroke();
+      ctx.fillStyle=COL.muted; ctx.beginPath(); ctx.moveTo(x+20,cy); ctx.lineTo(x+14,cy-5); ctx.lineTo(x+14,cy+5); ctx.fill(); x+=32;
+      avatar(x,cy,14,pColor(p.a),pName(p.a)); x+=36;
+      ctx.fillStyle=COL.txt; ctx.font="600 16px system-ui,sans-serif"; ctx.fillText(pName(p.a),x,cy);
+      const mt=fmt(p.monto); ctx.font="700 17px system-ui,sans-serif"; const mw=ctx.measureText(mt).width;
+      rr(iX+iW-mw-26, cy-15, mw+18, 30, 15); ctx.fillStyle="rgba(16,185,129,.16)"; ctx.fill();
+      ctx.fillStyle=COL.green; ctx.textAlign="right"; ctx.fillText(mt, iX+iW-16, cy); ctx.textAlign="left";
+      y+=hTransfRow;
     });
   }
-  y+=sepH;
+  y+=hGap;
 
-  // ---- sección: en qué se gastó (dona + leyenda) ----
-  ctx.textBaseline="alphabetic"; ctx.fillStyle="#cbd5e1"; ctx.font="700 18px system-ui,sans-serif";
-  ctx.fillText("En qué se gastó", padX, y+10);
-  y+=gastosTitleH;
-  const cx=padX+90, cyD=y+donaH/2-8, rOut=82, rIn=51;
+  // ---- en qué se gastó ----
+  ctx.fillStyle=COL.txt; ctx.font="700 18px system-ui,sans-serif"; ctx.textBaseline="alphabetic";
+  ctx.fillText("🥧  En qué se gastó", iX, y+22); y+=hTitle;
+  const cx=iX+donaD/2, cyD=y+donaD/2, rOut=donaD/2, rIn=donaD/2-26;
   if(ttotal>0){
     let ang=-Math.PI/2;
     tdata.forEach(d=>{ const slice=(d.value/ttotal)*Math.PI*2;
       ctx.beginPath(); ctx.moveTo(cx,cyD); ctx.arc(cx,cyD,rOut,ang,ang+slice); ctx.closePath(); ctx.fillStyle=d.color; ctx.fill(); ang+=slice; });
-    ctx.beginPath(); ctx.arc(cx,cyD,rIn,0,Math.PI*2); ctx.fillStyle="#0f172a"; ctx.fill();
-    ctx.fillStyle="#94a3b8"; ctx.font="400 12px system-ui,sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText("Total", cx, cyD-10);
-    ctx.fillStyle="#f1f5f9"; ctx.font="700 16px system-ui,sans-serif"; ctx.fillText(fmt(ttotal), cx, cyD+8); ctx.textAlign="left";
+    ctx.beginPath(); ctx.arc(cx,cyD,rIn,0,Math.PI*2); ctx.fillStyle=COL.card; ctx.fill();
+    ctx.fillStyle=COL.muted; ctx.font="500 12px system-ui,sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText("Total", cx, cyD-11);
+    ctx.fillStyle=COL.txt; ctx.font="700 17px system-ui,sans-serif"; ctx.fillText(fmt(ttotal), cx, cyD+9); ctx.textAlign="left";
   }
-  let ly=y+8; const lx=padX+205;
-  ctx.textBaseline="middle";
+  // leyenda con barras a la derecha
+  const lx=iX+donaD+28, lw=iW-donaD-28; let ly=y+2;
   tdata.forEach(d=>{
-    ctx.fillStyle=d.color; ctx.fillRect(lx, ly+5, 14, 14);
-    ctx.fillStyle="#e2e8f0"; ctx.font="500 15px system-ui,sans-serif"; ctx.textAlign="left"; ctx.fillText(d.name, lx+24, ly+12);
     const pct = ttotal? Math.round(d.value/ttotal*100):0;
-    ctx.fillStyle="#94a3b8"; ctx.font="600 15px system-ui,sans-serif"; ctx.textAlign="right"; ctx.fillText(fmt(d.value)+"  ("+pct+"%)", W-padX, ly+12); ctx.textAlign="left";
-    ly+=32;
+    ctx.fillStyle=d.color; ctx.beginPath(); ctx.arc(lx+5, ly+9, 5, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle=COL.txt; ctx.font="600 14px system-ui,sans-serif"; ctx.textBaseline="middle"; ctx.textAlign="left"; ctx.fillText(d.name, lx+18, ly+10);
+    ctx.fillStyle=sub; ctx.font="600 14px system-ui,sans-serif"; ctx.textAlign="right"; ctx.fillText(fmt(d.value)+"  ·  "+pct+"%", lx+lw, ly+10); ctx.textAlign="left";
+    // barra de progreso
+    rr(lx, ly+22, lw, 6, 3); ctx.fillStyle=COL.card2; ctx.fill();
+    rr(lx, ly+22, Math.max(6, lw*(pct/100)), 6, 3); ctx.fillStyle=d.color; ctx.fill();
+    ly+=hLegRow;
   });
-  y+=donaH;
+  ctx.textBaseline="alphabetic";
+  y+=hDona;
 
-  // footer
-  const fy=H-footH; ctx.fillStyle="#1e293b"; ctx.fillRect(padX, fy, W-padX*2, 1);
-  ctx.textBaseline="middle"; ctx.fillStyle="#64748b"; ctx.font="400 15px system-ui,sans-serif"; ctx.textAlign="left";
-  ctx.fillText("Total del grupo: "+fmt(total), padX, fy+40);
-  ctx.textAlign="right"; ctx.fillText("Compartimos", W-padX, fy+40); ctx.textAlign="left";
+  // ---- footer ----
+  const fy=M+cardH-hFoot;
+  ctx.strokeStyle=COL.border; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(iX,fy); ctx.lineTo(iX+iW,fy); ctx.stroke();
+  ctx.textBaseline="middle";
+  ctx.fillStyle=COL.muted; ctx.font="500 14px system-ui,sans-serif"; ctx.fillText("Total del grupo", iX, fy+38);
+  ctx.fillStyle=COL.green; ctx.font="700 17px system-ui,sans-serif"; ctx.fillText(fmt(total), iX+ctx.measureText("Total del grupo").width+14, fy+38);
+  ctx.fillStyle=COL.muted; ctx.font="600 15px system-ui,sans-serif"; ctx.textAlign="right"; ctx.fillText("💸 Compartimos", iX+iW, fy+38); ctx.textAlign="left";
+  ctx.textBaseline="alphabetic";
 
   cv.toBlob(async (blob)=>{
     const file=new File([blob], "gastos_"+P.n.replace(/[^\w]+/g,"_")+".png", {type:"image/png"});
@@ -694,7 +794,7 @@ function exportarFoto(){
 document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{ vista=t.dataset.v; render(); });
 $("exportBtn").onclick=exportar;
 $("projSel").onchange=()=>{ st.activo=$("projSel").value; persist(); vista="gastos"; render(); };
-$("projNew").onclick=()=>{ const n=prompt("Nombre del nuevo grupo:"); if(n===null) return; const nuevo={id:newId(),n:n.trim()||"Grupo",emoji:null,personas:[],gastos:[],liquidaciones:[]}; st.proyectos.push(nuevo); st.activo=nuevo.id; persist(); vista="gastos"; render(); abrirGrupo(); };
+$("projNew").onclick=()=>{ const n=prompt("Nombre del nuevo grupo:"); if(n===null) return; const nuevo={id:newId(),n:n.trim()||"Grupo",emoji:null,cerrado:false,personas:[],gastos:[],liquidaciones:[]}; st.proyectos.push(nuevo); st.activo=nuevo.id; persist(); vista="gastos"; render(); abrirGrupo(); };
 $("grupoBtn").onclick=abrirGrupo;
 $("g-close").onclick=cerrarGrupo;
 $("grupoModal").onclick=e=>{ if(e.target.id==="grupoModal") cerrarGrupo(); };
@@ -722,6 +822,17 @@ entrarPorLink();
 render();
 vaciarCola();
 setInterval(pollActivo, 2000);
+
+/* --- Punto 3: bloquear zoom (doble-tap y pinch), robusto en iOS standalone --- */
+document.addEventListener("gesturestart", e=>e.preventDefault());
+document.addEventListener("gesturechange", e=>e.preventDefault());
+let _lastTap=0;
+document.addEventListener("touchend", e=>{
+  const now=Date.now();
+  if(now-_lastTap<=350){ e.preventDefault(); }   // segundo toque rápido => sin zoom
+  _lastTap=now;
+}, {passive:false});
+document.addEventListener("dblclick", e=>e.preventDefault(), {passive:false});
 
 // PWA: registro del Service Worker (offline + instalable)
 if("serviceWorker" in navigator){
