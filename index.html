@@ -227,6 +227,15 @@
   </div>
 </div>
 
+<div id="newGroupModal" class="modal-bg">
+  <div class="modal">
+    <div class="row between" style="margin-bottom:6px"><strong>Nuevo grupo</strong><button id="ng-close" class="del" style="font-size:20px">✕</button></div>
+    <p style="font-size:13px;color:var(--muted);margin:0 0 12px">Ponele un nombre. Después le agregás la foto y las personas.</p>
+    <input type="text" id="ng-nombre" placeholder="Ej: Asado del finde" enterkeyhint="done" autocomplete="off">
+    <button class="btn btn-add" id="ng-ok" style="margin-top:14px;width:100%">＋ Crear grupo</button>
+  </div>
+</div>
+
 <script>
 "use strict";
 const CATS = ["Cancha","Comida","Bebida","Supermercado","Transporte","Entradas","Alojamiento","Servicios","Regalos","Otros"];
@@ -862,7 +871,18 @@ function exportarFoto(){
 document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{ vista=t.dataset.v; render(); });
 $("exportBtn").onclick=exportar;
 $("projSel").onchange=()=>{ st.activo=$("projSel").value; persist(); vista="gastos"; render(); };
-$("projNew").onclick=()=>{ const n=prompt("Nombre del nuevo grupo:"); if(n===null) return; const nuevo={id:newId(),n:n.trim()||"Grupo",emoji:null,cerrado:false,personas:[],gastos:[],liquidaciones:[]}; st.proyectos.push(nuevo); st.activo=nuevo.id; persist(); vista="gastos"; render(); abrirGrupo(); };
+function crearGrupo(){
+  const inp=$("ng-nombre"); const n=(inp.value||"").trim();
+  const nuevo={id:newId(),n:n||"Grupo",emoji:null,cerrado:false,personas:[],gastos:[],liquidaciones:[],foto:null};
+  st.proyectos.push(nuevo); st.activo=nuevo.id; persist(); vista="gastos"; render();
+  $("newGroupModal").classList.remove("open");
+  abrirGrupo();
+}
+$("projNew").onclick=()=>{ const inp=$("ng-nombre"); inp.value=""; $("newGroupModal").classList.add("open"); setTimeout(()=>inp.focus(),150); };
+$("ng-ok").onclick=crearGrupo;
+$("ng-nombre").addEventListener("keydown",e=>{ if(e.key==="Enter") crearGrupo(); });
+$("ng-close").onclick=()=>$("newGroupModal").classList.remove("open");
+$("newGroupModal").onclick=e=>{ if(e.target.id==="newGroupModal") $("newGroupModal").classList.remove("open"); };
 $("grupoBtn").onclick=abrirGrupo;
 $("g-close").onclick=cerrarGrupo;
 $("grupoModal").onclick=e=>{ if(e.target.id==="grupoModal") cerrarGrupo(); };
