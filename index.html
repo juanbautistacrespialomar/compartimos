@@ -20,7 +20,7 @@
     --acc-dark:#4f46e5; --ok:#34d399; --glow:rgba(99,102,241,.30);
   }
   html { touch-action:manipulation; overscroll-behavior:none; }
-  html,body { margin:0; background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; touch-action:manipulation; overscroll-behavior:none; }
+  html,body { margin:0; background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; touch-action:manipulation; overscroll-behavior:none; overflow-x:hidden; width:100%; max-width:100%; }
   body { min-height:100dvh; box-sizing:border-box; }
   .wrap { width:100%; max-width:600px; margin:0 auto; box-sizing:border-box; min-height:100dvh; padding:14px 16px calc(80px + env(safe-area-inset-bottom)); }
   /* --- Hero de portada estilo Splitwise --- */
@@ -32,7 +32,6 @@
   .hero-btn:active { background:rgba(15,23,42,.62); }
   .hero-foot { position:relative; z-index:1; padding:0 18px 18px; }
   .hero-title { position:relative; display:inline-flex; align-items:center; gap:9px; max-width:100%; }
-  .hero-title #projEmoji { font-size:27px; line-height:1; flex:none; }
   .hero-title #heroName { font-size:26px; font-weight:800; color:#fff; text-shadow:0 2px 10px rgba(0,0,0,.45); line-height:1.12; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .hero-chev { color:rgba(255,255,255,.85); font-size:14px; flex:none; }
   .hero-select { position:absolute; inset:0; width:100%; height:100%; opacity:0; border:none; cursor:pointer; -webkit-appearance:none; appearance:none; }
@@ -144,9 +143,9 @@
   .pct { color:var(--muted); }
   #fab { position:fixed; right:18px; bottom:calc(80px + env(safe-area-inset-bottom)); width:56px; height:56px; border-radius:50%; background:var(--green); color:#fff; font-size:30px; line-height:54px; text-align:center; border:none; box-shadow:0 6px 22px rgba(99,102,241,.5); cursor:pointer; z-index:51; }
   #fab:active { background:var(--acc-dark); }
-  .modal-bg { position:fixed; inset:0; background:rgba(2,6,23,.7); display:none; align-items:flex-end; justify-content:center; z-index:60; }
+  .modal-bg { position:fixed; top:0; left:0; right:0; height:var(--vvh, 100dvh); background:rgba(2,6,23,.7); display:none; align-items:flex-end; justify-content:center; z-index:60; padding-top:max(14px, env(safe-area-inset-top)); transform:translateY(var(--vvo, 0px)); transition:transform .18s ease; }
   .modal-bg.open { display:flex; }
-  .modal { background:var(--card); border:1px solid var(--border); border-radius:24px 24px 0 0; padding:18px; width:100%; max-width:600px; max-height:90vh; overflow:auto; }
+  .modal { background:var(--card); border:1px solid var(--border); border-radius:24px 24px 0 0; padding:18px; width:100%; max-width:600px; max-height:100%; overflow:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
   .modal label.tt { font-size:11px; color:var(--muted); display:block; margin:10px 0 5px; }
   @media(min-width:600px){ .modal-bg{ align-items:center; } .modal{ border-radius:24px; } }
   text { font-family:system-ui,sans-serif; }
@@ -175,7 +174,6 @@
   </div>
   <div class="hero-foot">
     <div class="hero-title">
-      <span id="projEmoji">📁</span>
       <span id="heroName">Grupo</span>
       <span class="hero-chev">▾</span>
       <select id="projSel" class="hero-select" aria-label="Cambiar de grupo"></select>
@@ -497,7 +495,6 @@ function renderHero(){
   const P=proy(), hero=$("hero");
   if(P.foto){ hero.style.backgroundImage=`url("${P.foto}")`; hero.classList.remove("no-foto"); }
   else { hero.style.backgroundImage=""; hero.classList.add("no-foto"); }
-  $("projEmoji").textContent = P.emoji || "📁";
   $("heroName").textContent = P.n;
   const {bal}=computar(); const pagos=liquidar(bal);
   const nP=P.personas.length;
@@ -645,11 +642,8 @@ function renderGastos(){
   $("content").querySelectorAll(".del-g").forEach(b=>b.onclick=e=>{ e.stopPropagation(); if(confirm("¿Borrar este gasto?")){ const P=proy(); sync(P,"DELETE","/p/"+P.id+"/gasto/"+b.dataset.id); P.gastos=P.gastos.filter(x=>x.id!==b.dataset.id); persist(); render(); } });
 }
 
-const EMOJIS = ["📁","💰","🍕","🍻","✈️","🏠","🎉","⚽","🏖️","🎂","🚗","🛒","🎸","☕","🍔","🏔️"];
 function renderGrupoModal(){
   const P=proy();
-  const emojisHtml = EMOJIS.map(e=>{ const sel=(P.emoji||"📁")===e;
-    return `<button class="emoji-pick" data-emoji="${e}" style="font-size:20px;width:42px;height:42px;border-radius:10px;border:1px solid ${sel?'var(--amber)':'var(--border)'};background:${sel?'rgba(245,158,11,.15)':'transparent'};cursor:pointer">${e}</button>`; }).join("");
   const personasHtml = !P.personas.length
     ? `<div class="empty" style="padding:8px">Agregá a los participantes del grupo.</div>`
     : P.personas.map((p,i)=>`<div class="person-row"><span class="swatch" style="background:${PCOL[i%PCOL.length]}"></span>
@@ -669,7 +663,7 @@ function renderGrupoModal(){
   $("grupoBody").innerHTML =
     `<label style="font-size:11px;color:var(--muted)">Foto de portada</label>
      <div class="foto-edit">
-       <div class="foto-prev" id="fotoPrev" style="${P.foto?`background-image:url('${P.foto}')`:''}">${P.foto?"":(P.emoji||"📁")}</div>
+       <div class="foto-prev" id="fotoPrev" style="${P.foto?`background-image:url('${P.foto}')`:''}"></div>
        <div style="display:flex;flex-direction:column;gap:7px">
          <button class="btn btn-ghost" id="foto-btn" style="justify-content:flex-start">📷 ${P.foto?"Cambiar foto":"Elegir foto"}</button>
          ${P.foto?`<button class="btn btn-ghost" id="foto-del" style="justify-content:flex-start;color:var(--red)">✕ Quitar foto</button>`:""}
@@ -679,8 +673,6 @@ function renderGrupoModal(){
      ${P.remoto?`<p style="font-size:11px;color:var(--muted);margin:-6px 0 12px">La foto se sincroniza: todos en el grupo ven la misma.</p>`:`<p style="font-size:11px;color:var(--muted);margin:-6px 0 12px">Compartí el grupo para que la foto la vean todos.</p>`}
      <label style="font-size:11px;color:var(--muted)">Nombre del grupo</label>
      <input id="g-nombre" value="${esc(P.n)}" style="margin:5px 0 12px">
-     <label style="font-size:11px;color:var(--muted)">Emoji del grupo</label>
-     <div style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 14px">${emojisHtml}</div>
      <label style="font-size:11px;color:var(--muted)">Personas</label>
      <div style="margin:6px 0 4px">${personasHtml}</div>
      <div class="row" style="gap:8px;margin-bottom:16px"><input id="np" type="text" placeholder="Nombre"><button class="btn btn-add" id="addp" style="width:auto;padding:10px 16px">＋</button></div>
@@ -693,7 +685,6 @@ function renderGrupoModal(){
   if($("foto-del")) $("foto-del").onclick=()=>{ const P=proy(); P.foto=null; syncProyecto(P); persist(); render(); renderGrupoModal(); };
 
   $("g-nombre").onchange=()=>{ const v=$("g-nombre").value.trim(); if(v){ proy().n=v; syncProyecto(proy()); persist(); render(); renderGrupoModal(); } };
-  $("grupoBody").querySelectorAll(".emoji-pick").forEach(b=>b.onclick=()=>{ proy().emoji=b.dataset.emoji; syncProyecto(proy()); persist(); render(); renderGrupoModal(); });
   $("grupoBody").querySelectorAll("[data-pid]").forEach(el=>el.onchange=()=>{ const p=proy().personas.find(x=>x.id===el.dataset.pid); if(p){ p.n=el.value.trim()||p.n; const P=proy(); sync(P,"DELETE","/p/"+P.id+"/persona/"+p.id); sync(P,"POST","/p/"+P.id+"/persona",{id:p.id, nombre:p.n}); persist(); render(); renderGrupoModal(); } });
   $("grupoBody").querySelectorAll(".del-p").forEach(b=>b.onclick=()=>{
     const P=proy();
@@ -734,7 +725,7 @@ function renderAjustes(){
     `<div class="panel"><p class="ptitle">📦 Grupos liquidados</p>
        <p style="font-size:11px;color:var(--muted);margin:0 0 10px">No aparecen en el inicio. Reabrilos si necesitás retocar algo.</p>
        ${cerrados.map(p=>`<div class="person-row" style="justify-content:space-between">
-          <span style="display:flex;align-items:center;gap:8px;min-width:0"><span style="font-size:16px">${p.emoji||"📁"}</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.n)}</span></span>
+          <span style="display:flex;align-items:center;gap:8px;min-width:0"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.n)}</span></span>
           <button class="btn btn-ghost mini" data-reabrir="${p.id}">↺ Reabrir</button>
         </div>`).join("")}</div>`;
   $("content").innerHTML =
@@ -854,7 +845,7 @@ function exportarFoto(){
 
   // ---- header ----
   rr(iX,y,58,58,15); ctx.fillStyle=COL.green; ctx.fill();
-  ctx.fillStyle="#0a0a0a"; ctx.font="30px system-ui,sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(P.emoji||"💸", iX+29, y+30); ctx.textAlign="left";
+  ctx.fillStyle="#0a0a0a"; ctx.font="30px system-ui,sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText("💸", iX+29, y+30); ctx.textAlign="left";
   ctx.textBaseline="alphabetic"; ctx.fillStyle=COL.txt; ctx.font="700 30px system-ui,sans-serif"; ctx.fillText(P.n, iX+74, y+27);
   const fechaTxt=new Date().toLocaleDateString("es-AR",{day:"numeric",month:"long",year:"numeric"});
   ctx.font="500 13px system-ui,sans-serif"; const fw=ctx.measureText(fechaTxt).width;
@@ -1049,6 +1040,22 @@ if("serviceWorker" in navigator){
     }).catch(err=>console.warn("SW no registrado:", err));
   });
 }
+
+/* --- Teclado iOS: el modal (bottom sheet) se apoya arriba del teclado en vez de quedar tapado --- */
+(function(){
+  const vv = window.visualViewport;
+  if(!vv) return;                         // navegadores viejos: cae al fallback CSS (100dvh)
+  const root = document.documentElement;
+  let raf = 0;
+  function ajustar(){
+    root.style.setProperty("--vvh", vv.height + "px");   // alto realmente visible (sin teclado)
+    root.style.setProperty("--vvo", vv.offsetTop + "px"); // corrección de posición en iOS
+  }
+  function pedir(){ if(raf) return; raf = requestAnimationFrame(()=>{ raf=0; ajustar(); }); }
+  vv.addEventListener("resize", pedir);
+  vv.addEventListener("scroll", pedir);
+  ajustar();
+})();
 </script>
 </body>
 </html>
