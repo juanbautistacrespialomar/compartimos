@@ -31,10 +31,17 @@
   .hero-btn { width:40px; height:40px; border-radius:50%; border:none; background:rgba(15,23,42,.42); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); color:#fff; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; }
   .hero-btn:active { background:rgba(15,23,42,.62); }
   .hero-foot { position:relative; z-index:1; padding:0 18px 18px; }
-  .hero-title { position:relative; display:inline-flex; align-items:center; gap:9px; max-width:100%; }
-  .hero-title #heroName { font-size:26px; font-weight:800; color:#fff; text-shadow:0 2px 10px rgba(0,0,0,.45); line-height:1.12; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .hero-chev { color:rgba(255,255,255,.85); font-size:14px; flex:none; }
+  .hero-title { position:relative; display:inline-flex; align-items:center; gap:8px; max-width:100%; background:rgba(2,6,23,.5); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,.22); border-radius:14px; padding:6px 8px 6px 14px; }
+  .hero-title:active { background:rgba(2,6,23,.68); }
+  .hero-title #heroName { font-size:22px; font-weight:800; color:#fff; text-shadow:0 2px 10px rgba(0,0,0,.45); line-height:1.12; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .hero-chev { display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:8px; background:rgba(255,255,255,.16); color:#fff; font-size:15px; flex:none; }
   .hero-select { position:absolute; inset:0; width:100%; height:100%; opacity:0; border:none; cursor:pointer; -webkit-appearance:none; appearance:none; }
+  /* Botón para reabrir un grupo liquidado mientras lo estás consultando */
+  .hero-reabrir { display:none; align-items:center; gap:6px; background:var(--amber); color:#1a1205; border:none; border-radius:12px; padding:8px 13px; font:inherit; font-size:13px; font-weight:700; cursor:pointer; flex:none; box-shadow:0 4px 14px rgba(251,191,36,.35); }
+  .hero-reabrir:active { filter:brightness(.9); }
+  .hero-reabrir.show { display:inline-flex; }
+  /* Aviso de solo lectura en grupos liquidados */
+  .rolock { display:flex; align-items:center; gap:8px; background:rgba(251,191,36,.12); border:1px solid rgba(251,191,36,.35); color:var(--amber); border-radius:14px; padding:10px 13px; font-size:12.5px; font-weight:600; margin-bottom:12px; line-height:1.35; }
   .hero-pill { display:inline-flex; align-items:center; gap:6px; margin-top:11px; background:rgba(2,6,23,.5); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); color:#fff; font-size:13px; font-weight:600; padding:7px 14px; border-radius:999px; }
   .sync-chip { display:none; align-items:center; gap:6px; margin-top:8px; margin-left:8px; background:rgba(2,6,23,.5); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); color:#fff; font-size:11px; font-weight:600; padding:6px 11px; border-radius:999px; vertical-align:middle; }
   .sync-chip.show { display:inline-flex; }
@@ -189,10 +196,13 @@
     </div>
   </div>
   <div class="hero-foot">
-    <div class="hero-title">
-      <span id="heroName">Grupo</span>
-      <span class="hero-chev">▾</span>
-      <select id="projSel" class="hero-select" aria-label="Cambiar de grupo"></select>
+    <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+      <div class="hero-title">
+        <span id="heroName">Grupo</span>
+        <span class="hero-chev">▾</span>
+        <select id="projSel" class="hero-select" aria-label="Cambiar de grupo"></select>
+      </div>
+      <button class="hero-reabrir" id="heroReabrir">↺ Reabrir</button>
     </div>
     <span class="hero-pill" id="heroSub">👥 0 personas</span>
     <span class="sync-chip" id="syncChip"><span class="sdot"></span><span id="syncTxt">Sincronizado</span></span>
@@ -441,14 +451,16 @@ function entrarPorLink(){
   fetchRemoto(g);   // bajo el estado inicial del grupo ya mismo
 }
 
-let vista="gastos", vistaPrev="gastos", editId=null, draftPart=null, draftPag=null, draftModo="igual", draftPesos={}, modoTorta="cat", actExpandida=false;
+let vista="gastos", vistaPrev="gastos", editId=null, draftPart=null, draftPag=null, draftModo="igual", draftPesos={}, modoTorta="cat", actExpandida=false, verId=null;
 
 const $ = id => document.getElementById(id);
 const fmt = n => new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(Math.round(n)||0);
 const hoy = () => { const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
 function esc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 function persist(){ save(KEY,st); }
-function proy(){ return st.proyectos.find(p=>p.id===st.activo) || st.proyectos[0]; }
+function proy(){ if(verId){ const v=st.proyectos.find(p=>p.id===verId); if(v) return v; } return st.proyectos.find(p=>p.id===st.activo) || st.proyectos[0]; }
+// Estás consultando un grupo liquidado: todo en modo solo lectura hasta reabrirlo.
+function soloLectura(){ const p=proy(); return !!verId && !!p && p.cerrado; }
 function pColor(id){ const i=proy().personas.findIndex(p=>p.id===id); return PCOL[((i<0?0:i))%PCOL.length]; }
 function pName(id){ const p=proy().personas.find(x=>x.id===id); return p?p.n:"(borrado)"; }
 function fechaCorta(d){ return d? (d.slice(8,10)+"/"+d.slice(5,7)) : ""; }
@@ -543,7 +555,9 @@ function renderHero(){
   const nP=P.personas.length;
   let estado = !P.gastos.length ? "sin gastos aún"
     : (pagos.length ? `${pagos.length} pago${pagos.length>1?"s":""} pendiente${pagos.length>1?"s":""}` : "✓ todo saldado");
-  $("heroSub").textContent = `👥 ${nP} ${nP===1?"persona":"personas"} · ${estado}`;
+  const viendoCerrado = !!verId && P.cerrado;
+  $("heroReabrir").classList.toggle("show", viendoCerrado);
+  $("heroSub").textContent = (viendoCerrado ? "📦 Liquidado · " : "") + `👥 ${nP} ${nP===1?"persona":"personas"} · ${estado}`;
   actualizarSync();
 }
 // Chip de estado de sincronización (solo en grupos compartidos).
@@ -569,6 +583,10 @@ function actualizarSync(){
 function render(){
   renderProjBar();
   renderHero();
+  const _ro=soloLectura();
+  $("fab").style.display=_ro?"none":"";
+  $("grupoBtn").style.opacity=_ro?".4":"";
+  $("grupoBtn").style.pointerEvents=_ro?"none":"";
   const _orden=["gastos","resumen","saldos","liquidar","ajustes"], _idx=_orden.indexOf(vista), _cambioVista=vista!==vistaPrev;
   document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.v===vista));
   $("tabInd").style.width=(100/_orden.length)+"%";
@@ -684,7 +702,7 @@ function renderSaldos(bal,total){
 }
 
 function renderLiquidar(bal,total){
-  const P=proy();
+  const P=proy(); const ro=soloLectura();
   if(!P.personas.length){ $("content").innerHTML=`<div class="empty">Agregá personas al grupo <b>${esc(P.n)}</b> desde la ⚙️ de arriba.</div>`; return; }
   if(!P.gastos.length){ $("content").innerHTML=`<div class="empty">Todavía no hay gastos para liquidar en <b>${esc(P.n)}</b>.</div>`; return; }
   const pagos=liquidar(bal);
@@ -697,21 +715,23 @@ function renderLiquidar(bal,total){
             <span class="arrow"><span class="line"></span><span class="head"></span><span class="amt">${fmt(p.monto)}</span></span>
             <span class="who"><span class="pdot" style="background:${pColor(p.a)}"></span>${esc(pName(p.a))}</span>
           </div>
-          <div class="pay-act"><button class="btn pay-done mini" data-de="${p.de}" data-a="${p.a}" data-m="${p.monto}">✓ Marcar como pagado</button></div>
+          ${ro?"":`<div class="pay-act"><button class="btn pay-done mini" data-de="${p.de}" data-a="${p.a}" data-m="${p.monto}">✓ Marcar como pagado</button></div>`}
         </div>`).join("");
   let hechos="";
   if((P.liquidaciones||[]).length){
     hechos = `<div class="panel"><p class="ptitle">✅ Pagos ya hechos</p>` +
       P.liquidaciones.map(l=>`<div class="paid-row">
         <span><span class="pdot" style="background:${pColor(l.de)};display:inline-block;vertical-align:-1px"></span> ${esc(pName(l.de))} → ${esc(pName(l.a))} · <b style="color:#cbd5e1">${fmt(l.monto)}</b> <span style="color:#475569">${fechaCorta(l.fecha)}</span></span>
-        <button class="undo" data-undo="${l.id}">↩ deshacer</button></div>`).join("") + `</div>`;
+        ${ro?"":`<button class="undo" data-undo="${l.id}">↩ deshacer</button>`}</div>`).join("") + `</div>`;
   }
   $("content").innerHTML =
+    (ro?`<div class="rolock"><span>🔒</span><span>Grupo liquidado · solo lectura. Reabrilo (botón ↺ arriba) para registrar o deshacer pagos.</span></div>`:"") +
     `<div class="panel"><div class="row between" style="margin-bottom:8px"><p class="ptitle" style="margin:0">💳 Quién le transfiere a quién</p>
         <button class="btn btn-ghost mini" id="fotoBtn">📷 Compartir imagen</button></div>${flechas}
        ${pagos.length?`<p style="font-size:11px;color:var(--muted);margin:8px 2px 0">Combinado en las menos transferencias posibles (${pagos.length}).</p>`:""}</div>
      ${hechos}`;
   $("fotoBtn").onclick=exportarFoto;
+  if(ro) return;
   $("content").querySelectorAll(".pay-done").forEach(b=>b.onclick=()=>{
     const Pl=proy(); const nl={id:newId(), de:b.dataset.de, a:b.dataset.a, monto:+b.dataset.m, fecha:hoy()}; Pl.liquidaciones.push(nl);
     logAct(Pl,"pay", pName(nl.de)+" → "+pName(nl.a), nl.monto);
@@ -724,20 +744,22 @@ function renderLiquidar(bal,total){
 }
 
 function renderGastos(){
-  const P=proy();
-  if(!P.gastos.length){ $("content").innerHTML=`<div class="empty">Sin gastos en <b>${esc(P.n)}</b>. Tocá <b>＋</b> para cargar uno.</div>`; return; }
+  const P=proy(); const ro=soloLectura();
+  if(!P.gastos.length){ $("content").innerHTML=`<div class="empty">${ro?`No hay gastos en <b>${esc(P.n)}</b>.`:`Sin gastos en <b>${esc(P.n)}</b>. Tocá <b>＋</b> para cargar uno.`}</div>`; return; }
   const ord=[...P.gastos].sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")||0);
   const total=ord.reduce((s,g)=>s+g.monto,0);
-  let h=`<div class="grouphdr"><span>${ord.length} gasto${ord.length===1?"":"s"}</span><span>${fmt(total)}</span><span style="text-transform:none;letter-spacing:0">tocá para editar</span></div>`;
+  let h = ro ? `<div class="rolock"><span>🔒</span><span>Grupo liquidado · solo lectura. Reabrilo (botón ↺ arriba) para cargar o editar.</span></div>` : "";
+  h+=`<div class="grouphdr"><span>${ord.length} gasto${ord.length===1?"":"s"}</span><span>${fmt(total)}</span><span style="text-transform:none;letter-spacing:0">${ro?"solo lectura":"tocá para editar"}</span></div>`;
   h+= ord.map(g=>{ const part=(g.part||[]); const col=CCOL[g.cat]||"#64748b";
     const quienes = part.length>=P.personas.length ? "todos" : part.map(pName).join(", ");
     const rep = g.reparto && g.reparto.modo ? ` · ⚖ ${g.reparto.modo}` : "";
     const meta=`${g.cat} · pagó ${esc(pName(g.pagador))} · entre ${part.length} (${esc(quienes)})${rep}${g.fecha?" · "+fechaCorta(g.fecha):""}`;
-    return `<div class="item" data-edit="${g.id}" style="cursor:pointer"><div style="display:flex;align-items:center;gap:10px;min-width:0">
+    return `<div class="item"${ro?"":` data-edit="${g.id}" style="cursor:pointer"`}><div style="display:flex;align-items:center;gap:10px;min-width:0">
         <span class="bar" style="background:${col}"></span>
         <div style="min-width:0"><div class="desc">${esc(g.desc||g.cat)}</div><div class="meta">${meta}</div></div></div>
-      <div style="display:flex;align-items:center;gap:6px"><span class="amt">${fmt(g.monto)}</span><button class="del del-g" data-id="${g.id}">🗑</button></div></div>`; }).join("");
+      <div style="display:flex;align-items:center;gap:6px"><span class="amt">${fmt(g.monto)}</span>${ro?"":`<button class="del del-g" data-id="${g.id}">🗑</button>`}</div></div>`; }).join("");
   $("content").innerHTML=h;
+  if(ro) return;
   $("content").querySelectorAll(".item[data-edit]").forEach(el=>el.onclick=e=>{ if(e.target.closest(".del")) return; abrirModal(el.dataset.edit); });
   $("content").querySelectorAll(".del-g").forEach(b=>b.onclick=e=>{ e.stopPropagation(); if(confirm("¿Borrar este gasto?")){ const P=proy(); const gb=P.gastos.find(x=>x.id===b.dataset.id); if(gb) logAct(P,"del", gb.desc||gb.cat, gb.monto); sync(P,"DELETE","/p/"+P.id+"/gasto/"+b.dataset.id); P.gastos=P.gastos.filter(x=>x.id!==b.dataset.id); persist(); render(); } });
 }
@@ -816,7 +838,7 @@ function renderGrupoModal(){
     cerrarGrupo();
   };
 }
-function abrirGrupo(){ renderGrupoModal(); $("grupoModal").classList.add("open"); }
+function abrirGrupo(){ if(soloLectura()){ alert("Este grupo está liquidado (solo lectura). Reabrilo para editar personas o la portada."); return; } renderGrupoModal(); $("grupoModal").classList.add("open"); }
 function cerrarGrupo(){ $("grupoModal").classList.remove("open"); }
 
 function renderAjustes(){
@@ -824,16 +846,18 @@ function renderAjustes(){
   const cerrados = st.proyectos.filter(p=>p.cerrado);
   const liquidadosHtml = !cerrados.length ? "" :
     `<div class="panel"><p class="ptitle">📦 Grupos liquidados</p>
-       <p style="font-size:11px;color:var(--muted);margin:0 0 10px">No aparecen en el inicio. Reabrilos si necesitás retocar algo.</p>
+       <p style="font-size:11px;color:var(--muted);margin:0 0 10px">No aparecen en el inicio. Tocá "Ver" para consultarlos; adentro podés reabrirlos si hace falta.</p>
        ${cerrados.map(p=>`<div class="person-row" style="justify-content:space-between">
           <span style="display:flex;align-items:center;gap:8px;min-width:0"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.n)}</span></span>
-          <button class="btn btn-ghost mini" data-reabrir="${p.id}">↺ Reabrir</button>
+          <button class="btn btn-ghost mini" data-ver="${p.id}">👁 Ver</button>
         </div>`).join("")}</div>`;
   $("content").innerHTML =
     `<div class="panel"><p class="ptitle">📁 Proyecto actual</p>
        <label style="font-size:11px;color:var(--muted)">Nombre</label>
-       <input id="projName" value="${esc(P.n)}" style="margin:5px 0 10px">
-       <button class="btn btn-ghost" id="projClose" style="margin-bottom:8px">✓ Cerrar grupo (marcarlo como liquidado)</button>
+       <input id="projName" value="${esc(P.n)}" style="margin:5px 0 10px" ${P.cerrado?"disabled":""}>
+       ${P.cerrado
+          ? `<button class="btn btn-ghost" id="projReopen" style="margin-bottom:8px">↺ Reabrir este grupo</button>`
+          : `<button class="btn btn-ghost" id="projClose" style="margin-bottom:8px">✓ Cerrar grupo (marcarlo como liquidado)</button>`}
        <button class="btn btn-ghost danger" id="projDel">🗑 Borrar este grupo</button></div>
      ${liquidadosHtml}
      <div class="panel"><p class="ptitle">⚙️ Datos y backup</p>
@@ -843,16 +867,19 @@ function renderAjustes(){
        <button class="btn btn-ghost danger" id="reset">↺ Borrar TODO y empezar de cero</button>
        <p style="font-size:11px;color:var(--muted);margin:8px 0 0">El backup guarda todos los proyectos en un archivo JSON.</p></div>`;
   $("projName").onchange=()=>{ const v=$("projName").value.trim(); if(v){ proy().n=v; syncProyecto(proy()); persist(); render(); } };
-  $("projClose").onclick=()=>{
+  const _pc=$("projClose");
+  if(_pc) _pc.onclick=()=>{
     if(!confirm(`¿Cerrar "${P.n}"? Deja de aparecer en el inicio y queda guardado en "Grupos liquidados". Podés reabrirlo cuando quieras.`)) return;
     P.cerrado=true;
     const abierto=st.proyectos.find(p=>!p.cerrado);
     if(abierto){ st.activo=abierto.id; }
     else { const nuevo={id:newCode(),n:"Mi grupo",emoji:null,cerrado:false,personas:[],gastos:[],liquidaciones:[]}; st.proyectos.push(nuevo); st.activo=nuevo.id; }
-    persist(); vista="gastos"; render();
+    verId=null; persist(); vista="gastos"; render();
   };
-  $("projDel").onclick=()=>{ if(!confirm(`¿Borrar el proyecto "${P.n}" con todo adentro?`)) return; st.proyectos=st.proyectos.filter(p=>p.id!==P.id); if(!st.proyectos.some(p=>!p.cerrado)) st.proyectos.push({id:newCode(),n:"Mi grupo",emoji:null,cerrado:false,personas:[],gastos:[],liquidaciones:[]}); st.activo=st.proyectos.find(p=>!p.cerrado).id; persist(); vista="gastos"; render(); };
-  $("content").querySelectorAll("[data-reabrir]").forEach(b=>b.onclick=()=>{ const p=st.proyectos.find(x=>x.id===b.dataset.reabrir); if(p){ p.cerrado=false; st.activo=p.id; persist(); vista="gastos"; render(); } });
+  const _pr=$("projReopen");
+  if(_pr) _pr.onclick=()=>{ P.cerrado=false; st.activo=P.id; verId=null; persist(); vista="gastos"; render(); };
+  $("projDel").onclick=()=>{ if(!confirm(`¿Borrar el proyecto "${P.n}" con todo adentro?`)) return; st.proyectos=st.proyectos.filter(p=>p.id!==P.id); if(!st.proyectos.some(p=>!p.cerrado)) st.proyectos.push({id:newCode(),n:"Mi grupo",emoji:null,cerrado:false,personas:[],gastos:[],liquidaciones:[]}); st.activo=st.proyectos.find(p=>!p.cerrado).id; verId=null; persist(); vista="gastos"; render(); };
+  $("content").querySelectorAll("[data-ver]").forEach(b=>b.onclick=()=>{ const p=st.proyectos.find(x=>x.id===b.dataset.ver); if(p){ verId=p.id; vista="gastos"; render(); } });
   $("backup").onclick=()=>{ const data={app:"DividirGastos",fecha:new Date().toISOString(),st}; const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"})); a.download="backup_dividir_"+hoy()+".json"; a.click(); URL.revokeObjectURL(a.href); };
   $("importBtn").onclick=()=>$("importFile").click();
   $("importFile").onchange=(e)=>{ const file=e.target.files[0]; if(!file) return; const r=new FileReader();
@@ -925,6 +952,7 @@ function pintarChips(){ $("q-chips").innerHTML=chipsHTML();
 function fillSelects(){ $("q-cat").innerHTML=`<option value="" disabled selected>Seleccionar…</option>`+CATS.map(c=>`<option>${c}</option>`).join(""); $("q-pagador").innerHTML=proy().personas.map(p=>`<option value="${p.id}">${esc(p.n)}</option>`).join(""); }
 function abrirModal(id){
   const P=proy();
+  if(soloLectura()){ alert("Este grupo está liquidado (solo lectura). Reabrilo para cargar o editar gastos."); return; }
   if(!P.personas.length){ alert("Primero agregá personas al grupo (tocá la ⚙️ de arriba)."); abrirGrupo(); return; }
   fillSelects();
   if(id){ const g=P.gastos.find(x=>x.id===id); if(!g) return; editId=id; $("m-title").textContent="Editar gasto";
@@ -1090,11 +1118,12 @@ function exportarFoto(){
 /* ---------- eventos ---------- */
 document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{ vista=t.dataset.v; render(); });
 $("exportBtn").onclick=exportar;
-$("projSel").onchange=()=>{ st.activo=$("projSel").value; persist(); vista="gastos"; render(); };
+$("projSel").onchange=()=>{ verId=null; st.activo=$("projSel").value; persist(); vista="gastos"; render(); };
+$("heroReabrir").onclick=()=>{ const P=proy(); if(!P||!P.cerrado) return; if(!confirm(`¿Reabrir "${P.n}"? Vuelve a aparecer en el inicio y podés seguir cargando gastos.`)) return; P.cerrado=false; st.activo=P.id; verId=null; persist(); vista="gastos"; render(); };
 function crearGrupo(){
   const inp=$("ng-nombre"); const n=(inp.value||"").trim();
   const nuevo={id:newCode(),n:n||"Grupo",emoji:null,cerrado:false,personas:[],gastos:[],liquidaciones:[],foto:null};
-  st.proyectos.push(nuevo); st.activo=nuevo.id; persist(); vista="gastos"; render();
+  st.proyectos.push(nuevo); st.activo=nuevo.id; verId=null; persist(); vista="gastos"; render();
   $("newGroupModal").classList.remove("open");
   abrirGrupo();
 }
@@ -1112,7 +1141,7 @@ function unirseAGrupo(){
   let P=st.proyectos.find(p=>p.id===g);
   if(!P){ P={id:g, n:"Grupo compartido", remoto:g, emoji:null, cerrado:false, personas:[], gastos:[], liquidaciones:[], foto:null}; st.proyectos.push(P); }
   else { P.remoto=g; P.cerrado=false; }
-  st.activo=g; persist(); vista="gastos"; render();
+  st.activo=g; verId=null; persist(); vista="gastos"; render();
   $("newGroupModal").classList.remove("open");
   fetchRemoto(g);   // baja el estado del grupo ya mismo
 }
