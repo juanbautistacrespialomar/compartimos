@@ -43,6 +43,11 @@
   .sync-chip.saving .sdot { background:var(--amber); animation:pulse 1s ease-in-out infinite; }
   .sync-chip.offline .sdot { background:#94a3b8; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.25} }
+  /* --- Código de grupo (compartir) --- */
+  .code-box { display:flex; align-items:center; justify-content:space-between; gap:10px; background:var(--card2); border:1.5px dashed var(--green); border-radius:14px; padding:12px 14px; margin-bottom:10px; }
+  .code-box .code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:24px; font-weight:700; letter-spacing:4px; color:var(--txt); }
+  .code-box .cbtn { background:var(--card); border:1px solid var(--border); color:var(--teal); border-radius:10px; padding:8px 12px; font:inherit; font-size:12px; font-weight:600; cursor:pointer; flex:none; }
+  .code-box .cbtn:active { background:var(--card2); }
   /* --- Editor de foto en modal de grupo --- */
   .foto-edit { display:flex; align-items:center; gap:12px; margin:6px 0 14px; }
   .foto-prev { width:64px; height:64px; border-radius:16px; background-size:cover; background-position:center; background-color:var(--card2); border:1px solid var(--border); flex:none; display:flex; align-items:center; justify-content:center; font-size:26px; }
@@ -257,8 +262,8 @@
       <span style="font-size:12px;color:var(--muted)">o</span>
       <span style="flex:1;height:1px;background:var(--border)"></span>
     </div>
-    <p style="font-size:13px;color:var(--muted);margin:0 0 10px">¿Un amigo te pasó un link de un grupo? Pegalo acá para unirte desde la app.</p>
-    <input type="text" id="ng-link" placeholder="Pegá el link del grupo" enterkeyhint="go" autocomplete="off">
+    <p style="font-size:13px;color:var(--muted);margin:0 0 10px">¿Un amigo te pasó un grupo? Pegá el <b>link</b> o el <b>código</b> para unirte.</p>
+    <input type="text" id="ng-link" placeholder="Link o código (ej: K7XM2Q)" enterkeyhint="go" autocomplete="off" autocapitalize="characters">
     <button class="btn btn-ghost" id="ng-join" style="margin-top:12px;width:100%;justify-content:center">🔗 Unirme al grupo</button>
   </div>
 </div>
@@ -270,7 +275,9 @@ const CCOL = { "Cancha":"#84cc16","Comida":"#22c55e","Bebida":"#f59e0b","Superme
 const PCOL = ["#22c55e","#3b82f6","#f59e0b","#a855f7","#ec4899","#06b6d4","#84cc16","#f43f5e","#fb923c","#0ea5e9","#eab308","#14b8a6","#d946ef","#fb7185","#94a3b8","#6366f1"];
 
 function newId(){ return Date.now()+"_"+Math.random().toString(36).slice(2,6); }
-function SEED(){ const id=newId(); return { v:3, activo:id, proyectos:[{id, n:"Mi grupo", personas:[], gastos:[], liquidaciones:[]}] }; }
+// Código corto y legible para identificar/compartir grupos (sin caracteres ambiguos).
+function newCode(){ const A="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let s=""; for(let i=0;i<6;i++) s+=A[Math.floor(Math.random()*A.length)]; return s; }
+function SEED(){ const id=newCode(); return { v:3, activo:id, proyectos:[{id, n:"Mi grupo", personas:[], gastos:[], liquidaciones:[]}] }; }
 const KEY="dividirGastos.v1";
 const mem={};
 function load(k,def){ try{const r=localStorage.getItem(k); return r?JSON.parse(r):def;}catch(e){ return (k in mem)?mem[k]:def; } }
@@ -281,12 +288,12 @@ function parseMonto(v){ v=String(v).trim(); if(!v) return NaN; if(v.indexOf(",")
 function norm(s){
   if(!s||typeof s!=="object") return SEED();
   if(!Array.isArray(s.proyectos)){
-    const id=newId();
+    const id=newCode();
     const per=Array.isArray(s.personas)?s.personas:[], gas=Array.isArray(s.gastos)?s.gastos:[];
     s={ v:3, activo:id, proyectos:[{id, n:"Mi grupo", personas:per, gastos:gas, liquidaciones:[]}] };
   }
   s.v=3;
-  if(!s.proyectos.length) s.proyectos.push({id:newId(), n:"Mi grupo", personas:[], gastos:[], liquidaciones:[]});
+  if(!s.proyectos.length) s.proyectos.push({id:newCode(), n:"Mi grupo", personas:[], gastos:[], liquidaciones:[]});
   s.proyectos.forEach(p=>{ if(!p.id)p.id=newId(); if(!p.n)p.n="Proyecto"; if(!Array.isArray(p.personas))p.personas=[]; if(!Array.isArray(p.gastos))p.gastos=[]; if(!Array.isArray(p.liquidaciones))p.liquidaciones=[]; if(!("remoto" in p))p.remoto=null; if(!("emoji" in p))p.emoji=null; if(!("cerrado" in p))p.cerrado=false; if(!("foto" in p))p.foto=null; });
   if(!s.proyectos.some(p=>p.id===s.activo && !p.cerrado)){ const abierto=s.proyectos.find(p=>!p.cerrado); if(abierto) s.activo=abierto.id; }
   if(!s.proyectos.some(p=>p.id===s.activo)) s.activo=s.proyectos[0].id;
@@ -648,10 +655,15 @@ function renderGrupoModal(){
     : P.personas.map((p,i)=>`<div class="person-row"><span class="swatch" style="background:${PCOL[i%PCOL.length]}"></span>
         <input data-pid="${p.id}" value="${esc(p.n)}"><button class="del del-p" data-id="${p.id}">🗑</button></div>`).join("");
   const compartirHtml = P.remoto
-    ? `<p style="font-size:12px;color:var(--muted);margin-bottom:8px">Grupo compartido. Pasales este link a tus amigos:</p>
+    ? `<p style="font-size:12px;color:var(--muted);margin-bottom:6px">Código del grupo — dictalo o que lo carguen en "Unirme":</p>
+       <div class="code-box"><span class="code" id="codeGrupo">${esc(P.id)}</span><button class="cbtn" id="copiarCode">Copiar</button></div>
+       <p style="font-size:12px;color:var(--muted);margin:0 0 6px">o pasales el link directo:</p>
        <input id="linkGrupo" readonly value="${esc(linkGrupo(P))}" style="margin-bottom:8px;font-size:12px">
-       <button class="btn btn-ghost" id="copiarLink">📋 Copiar link</button>
-       <p style="font-size:11px;color:var(--muted);margin:10px 0 0">💡 Si tu amigo ya tiene la app: que abra la app, toque <b>＋</b> y elija <b>Unirme al grupo</b> pegando este link.</p>`
+       <div class="row" style="gap:8px">
+         <button class="btn btn-add" id="compartirTodo" style="flex:1;width:auto">📤 Compartir</button>
+         <button class="btn btn-ghost" id="copiarLink" style="flex:none">📋 Link</button>
+       </div>
+       <p style="font-size:11px;color:var(--muted);margin:10px 0 0">💡 Si tu amigo ya tiene la app: que la abra, toque <b>＋</b> y elija <b>Unirme al grupo</b> con el código o el link.</p>`
     : `<p style="font-size:12px;color:var(--muted);margin-bottom:8px">Subilo a la nube para que tus amigos carguen gastos con vos.</p>
        <button class="btn btn-ghost" id="compartirBtn">🔗 Compartir con amigos</button>`;
   $("grupoBody").innerHTML =
@@ -697,6 +709,15 @@ function renderGrupoModal(){
   $("addp").onclick=add; $("np").addEventListener("keydown",e=>{ if(e.key==="Enter") add(); });
   if($("compartirBtn")) $("compartirBtn").onclick=async()=>{ await compartirProyecto(); renderGrupoModal(); };
   if($("copiarLink")) $("copiarLink").onclick=()=>{ const i=$("linkGrupo"); i.select(); i.setSelectionRange(0,9999); try{navigator.clipboard.writeText(i.value);}catch(e){document.execCommand("copy");} alert("Link copiado ✓"); };
+  if($("copiarCode")) $("copiarCode").onclick=()=>{ try{navigator.clipboard.writeText(P.id);}catch(e){} alert("Código copiado ✓"); };
+  if($("compartirTodo")) $("compartirTodo").onclick=async()=>{
+    const texto=`Sumate a "${P.n}" en Compartimos 💸\n\nCódigo del grupo: ${P.id}\nLink: ${linkGrupo(P)}\n\n(Si ya tenés la app, abrila, tocá ＋ y "Unirme al grupo").`;
+    try{
+      if(navigator.share){ await navigator.share({title:"Compartimos · "+P.n, text:texto}); return; }
+    }catch(e){ if(e && e.name==="AbortError") return; }
+    try{ await navigator.clipboard.writeText(texto); alert("Código y link copiados ✓ Pegalos donde quieras."); }
+    catch(e){ alert("Código: "+P.id+"\nLink: "+linkGrupo(P)); }
+  };
   $("g-guardar").onclick=()=>{
     const pend=$("np")&&$("np").value.trim();
     if(pend){ const P=proy(); const np={id:newId(), n:pend}; P.personas.push(np); sync(P,"POST","/p/"+P.id+"/persona",{id:np.id, nombre:np.n}); persist(); render(); }
@@ -735,10 +756,10 @@ function renderAjustes(){
     P.cerrado=true;
     const abierto=st.proyectos.find(p=>!p.cerrado);
     if(abierto){ st.activo=abierto.id; }
-    else { const nuevo={id:newId(),n:"Mi grupo",emoji:null,cerrado:false,personas:[],gastos:[],liquidaciones:[]}; st.proyectos.push(nuevo); st.activo=nuevo.id; }
+    else { const nuevo={id:newCode(),n:"Mi grupo",emoji:null,cerrado:false,personas:[],gastos:[],liquidaciones:[]}; st.proyectos.push(nuevo); st.activo=nuevo.id; }
     persist(); vista="gastos"; render();
   };
-  $("projDel").onclick=()=>{ if(!confirm(`¿Borrar el proyecto "${P.n}" con todo adentro?`)) return; st.proyectos=st.proyectos.filter(p=>p.id!==P.id); if(!st.proyectos.some(p=>!p.cerrado)) st.proyectos.push({id:newId(),n:"Mi grupo",emoji:null,cerrado:false,personas:[],gastos:[],liquidaciones:[]}); st.activo=st.proyectos.find(p=>!p.cerrado).id; persist(); vista="gastos"; render(); };
+  $("projDel").onclick=()=>{ if(!confirm(`¿Borrar el proyecto "${P.n}" con todo adentro?`)) return; st.proyectos=st.proyectos.filter(p=>p.id!==P.id); if(!st.proyectos.some(p=>!p.cerrado)) st.proyectos.push({id:newCode(),n:"Mi grupo",emoji:null,cerrado:false,personas:[],gastos:[],liquidaciones:[]}); st.activo=st.proyectos.find(p=>!p.cerrado).id; persist(); vista="gastos"; render(); };
   $("content").querySelectorAll("[data-reabrir]").forEach(b=>b.onclick=()=>{ const p=st.proyectos.find(x=>x.id===b.dataset.reabrir); if(p){ p.cerrado=false; st.activo=p.id; persist(); vista="gastos"; render(); } });
   $("backup").onclick=()=>{ const data={app:"DividirGastos",fecha:new Date().toISOString(),st}; const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"})); a.download="backup_dividir_"+hoy()+".json"; a.click(); URL.revokeObjectURL(a.href); };
   $("importBtn").onclick=()=>$("importFile").click();
@@ -926,16 +947,18 @@ $("exportBtn").onclick=exportar;
 $("projSel").onchange=()=>{ st.activo=$("projSel").value; persist(); vista="gastos"; render(); };
 function crearGrupo(){
   const inp=$("ng-nombre"); const n=(inp.value||"").trim();
-  const nuevo={id:newId(),n:n||"Grupo",emoji:null,cerrado:false,personas:[],gastos:[],liquidaciones:[],foto:null};
+  const nuevo={id:newCode(),n:n||"Grupo",emoji:null,cerrado:false,personas:[],gastos:[],liquidaciones:[],foto:null};
   st.proyectos.push(nuevo); st.activo=nuevo.id; persist(); vista="gastos"; render();
   $("newGroupModal").classList.remove("open");
   abrirGrupo();
 }
-// Extrae el id del grupo de un link (?g=XXX) o de un código pegado directo.
+// Extrae el id del grupo de un link (?g=XXX) o de un código pegado/tipeado directo.
 function extraerGid(txt){
   txt=(txt||"").trim(); if(!txt) return "";
   const m=txt.match(/[?&]g=([^&\s]+)/);
-  return m ? decodeURIComponent(m[1]) : txt;
+  if(m) return decodeURIComponent(m[1]);                       // vino de un link → tal cual
+  if(!txt.includes("_") && txt.length<=12) return txt.replace(/\s/g,"").toUpperCase();  // código corto → normalizo
+  return txt;
 }
 function unirseAGrupo(){
   const g=extraerGid($("ng-link").value);
