@@ -96,7 +96,7 @@
   .grouphdr { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin:14px 2px 6px; display:flex; justify-content:space-between; }
   .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .grid .full { grid-column:1/-1; }
-  input,select { width:100%; background:var(--card2); border:1px solid #334155; border-radius:14px; padding:11px 13px; color:var(--txt); font:inherit; }
+  input,select { width:100%; min-width:0; max-width:100%; background:var(--card2); border:1px solid #334155; border-radius:14px; padding:11px 13px; color:var(--txt); font:inherit; }
   input:focus,select:focus { outline:none; border-color:var(--green); }
   .btn-add { background:var(--green); padding:12px; font-weight:600; font-size:14px; display:flex; align-items:center; justify-content:center; gap:6px; border-radius:999px; box-shadow:0 4px 16px rgba(99,102,241,.35); }
   .btn-add:active { background:var(--acc-dark); }
@@ -145,7 +145,7 @@
   #fab:active { background:var(--acc-dark); }
   .modal-bg { position:fixed; top:0; left:0; right:0; height:var(--vvh, 100dvh); background:rgba(2,6,23,.7); display:none; align-items:flex-end; justify-content:center; z-index:60; padding-top:max(14px, env(safe-area-inset-top)); transform:translateY(var(--vvo, 0px)); transition:transform .18s ease; }
   .modal-bg.open { display:flex; }
-  .modal { background:var(--card); border:1px solid var(--border); border-radius:24px 24px 0 0; padding:18px; width:100%; max-width:600px; max-height:100%; overflow:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
+  .modal { background:var(--card); border:1px solid var(--border); border-radius:24px 24px 0 0; padding:18px; width:100%; max-width:600px; max-height:100%; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
   .modal label.tt { font-size:11px; color:var(--muted); display:block; margin:10px 0 5px; }
   @media(min-width:600px){ .modal-bg{ align-items:center; } .modal{ border-radius:24px; } }
   text { font-family:system-ui,sans-serif; }
