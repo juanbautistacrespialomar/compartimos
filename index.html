@@ -427,6 +427,11 @@ async function fetchRemoto(id){
     P.n = data.proyecto.nombre;
     if("emoji" in data.proyecto && data.proyecto.emoji) P.emoji = data.proyecto.emoji;
     if("foto" in data.proyecto) P.foto = data.proyecto.foto || null;   // solo si el Worker ya soporta foto
+    if("cerrado" in data.proyecto){   // el estado liquidado/activo es compartido (solo si el Worker ya lo manda)
+      P.cerrado = !!data.proyecto.cerrado;
+      if(P.cerrado){ if(st.activo===P.id){ const ab=st.proyectos.find(x=>!x.cerrado); if(ab) st.activo=ab.id; } }
+      else if(verId===P.id){ verId=null; }   // lo reabrieron: ya no es un liquidado que consulto
+    }
     P.personas = data.personas.map(x=>({id:x.id, n:x.nombre}));
     P.gastos = data.gastos.map(x=>({id:x.id, monto:x.monto, desc:x.descripcion, cat:x.categoria, fecha:x.fecha, pagador:x.pagador, part:x.participantes||[], reparto:x.reparto||null}));
     P.liquidaciones = data.liquidaciones.map(x=>({id:x.id, de:x.de_persona, a:x.a_persona, monto:x.monto, fecha:x.fecha}));
@@ -486,7 +491,7 @@ function comprimirImagen(file, cb){
   img.src=url;
 }
 // Sube nombre/emoji/foto al servidor (solo si el grupo está compartido). Requiere que el Worker acepte estos campos en POST /p/:id
-function syncProyecto(P){ sync(P,"POST","/p/"+P.id,{nombre:P.n, emoji:P.emoji||null, foto:P.foto||null}); }
+function syncProyecto(P){ sync(P,"POST","/p/"+P.id,{nombre:P.n, emoji:P.emoji||null, foto:P.foto||null, cerrado:!!P.cerrado}); }
 
 /* ---------- núcleo de cálculo ---------- */
 // Devuelve cuánto le toca a cada participante según el modo de reparto del gasto.
@@ -879,13 +884,14 @@ function renderAjustes(){
   if(_pc) _pc.onclick=()=>{
     if(!confirm(`¿Cerrar "${P.n}"? Deja de aparecer en el inicio y queda guardado en "Grupos liquidados". Podés reabrirlo cuando quieras.`)) return;
     P.cerrado=true;
+    syncProyecto(P);
     const abierto=st.proyectos.find(p=>!p.cerrado);
     if(abierto){ st.activo=abierto.id; }
     else { const nuevo={id:newCode(),n:"Mi grupo",emoji:null,cerrado:false,personas:[],gastos:[],liquidaciones:[]}; st.proyectos.push(nuevo); st.activo=nuevo.id; }
     verId=null; persist(); vista="gastos"; render();
   };
   const _pr=$("projReopen");
-  if(_pr) _pr.onclick=()=>{ P.cerrado=false; st.activo=P.id; verId=null; persist(); vista="gastos"; render(); };
+  if(_pr) _pr.onclick=()=>{ P.cerrado=false; syncProyecto(P); st.activo=P.id; verId=null; persist(); vista="gastos"; render(); };
   $("projDel").onclick=()=>{ if(!confirm(`¿Borrar el proyecto "${P.n}" con todo adentro?`)) return; st.proyectos=st.proyectos.filter(p=>p.id!==P.id); if(!st.proyectos.some(p=>!p.cerrado)) st.proyectos.push({id:newCode(),n:"Mi grupo",emoji:null,cerrado:false,personas:[],gastos:[],liquidaciones:[]}); st.activo=st.proyectos.find(p=>!p.cerrado).id; verId=null; persist(); vista="gastos"; render(); };
   $("content").querySelectorAll("[data-ver]").forEach(b=>b.onclick=()=>{ const p=st.proyectos.find(x=>x.id===b.dataset.ver); if(p){ verId=p.id; vista="gastos"; persist(); render(); } });
   $("content").querySelectorAll("[data-dejarver]").forEach(b=>b.onclick=()=>{ verId=null; persist(); render(); });
@@ -1128,7 +1134,7 @@ function exportarFoto(){
 document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{ vista=t.dataset.v; render(); });
 $("exportBtn").onclick=exportar;
 $("projSel").onchange=()=>{ verId=null; st.activo=$("projSel").value; persist(); vista="gastos"; render(); };
-$("heroReabrir").onclick=()=>{ const P=proy(); if(!P||!P.cerrado) return; if(!confirm(`¿Reabrir "${P.n}"? Vuelve a aparecer en el inicio y podés seguir cargando gastos.`)) return; P.cerrado=false; st.activo=P.id; verId=null; persist(); vista="gastos"; render(); };
+$("heroReabrir").onclick=()=>{ const P=proy(); if(!P||!P.cerrado) return; if(!confirm(`¿Reabrir "${P.n}"? Vuelve a aparecer en el inicio y podés seguir cargando gastos.`)) return; P.cerrado=false; syncProyecto(P); st.activo=P.id; verId=null; persist(); vista="gastos"; render(); };
 $("heroSalir").onclick=()=>{ verId=null; vista="gastos"; persist(); render(); };
 function crearGrupo(){
   const inp=$("ng-nombre"); const n=(inp.value||"").trim();
