@@ -252,6 +252,14 @@
     <p style="font-size:13px;color:var(--muted);margin:0 0 12px">Ponele un nombre. Después le agregás la foto y las personas.</p>
     <input type="text" id="ng-nombre" placeholder="Ej: Asado del finde" enterkeyhint="done" autocomplete="off">
     <button class="btn btn-add" id="ng-ok" style="margin-top:14px;width:100%">＋ Crear grupo</button>
+    <div style="display:flex;align-items:center;gap:10px;margin:18px 0">
+      <span style="flex:1;height:1px;background:var(--border)"></span>
+      <span style="font-size:12px;color:var(--muted)">o</span>
+      <span style="flex:1;height:1px;background:var(--border)"></span>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin:0 0 10px">¿Un amigo te pasó un link de un grupo? Pegalo acá para unirte desde la app.</p>
+    <input type="text" id="ng-link" placeholder="Pegá el link del grupo" enterkeyhint="go" autocomplete="off">
+    <button class="btn btn-ghost" id="ng-join" style="margin-top:12px;width:100%;justify-content:center">🔗 Unirme al grupo</button>
   </div>
 </div>
 
@@ -642,7 +650,8 @@ function renderGrupoModal(){
   const compartirHtml = P.remoto
     ? `<p style="font-size:12px;color:var(--muted);margin-bottom:8px">Grupo compartido. Pasales este link a tus amigos:</p>
        <input id="linkGrupo" readonly value="${esc(linkGrupo(P))}" style="margin-bottom:8px;font-size:12px">
-       <button class="btn btn-ghost" id="copiarLink">📋 Copiar link</button>`
+       <button class="btn btn-ghost" id="copiarLink">📋 Copiar link</button>
+       <p style="font-size:11px;color:var(--muted);margin:10px 0 0">💡 Si tu amigo ya tiene la app: que abra la app, toque <b>＋</b> y elija <b>Unirme al grupo</b> pegando este link.</p>`
     : `<p style="font-size:12px;color:var(--muted);margin-bottom:8px">Subilo a la nube para que tus amigos carguen gastos con vos.</p>
        <button class="btn btn-ghost" id="compartirBtn">🔗 Compartir con amigos</button>`;
   $("grupoBody").innerHTML =
@@ -922,9 +931,27 @@ function crearGrupo(){
   $("newGroupModal").classList.remove("open");
   abrirGrupo();
 }
-$("projNew").onclick=()=>{ const inp=$("ng-nombre"); inp.value=""; $("newGroupModal").classList.add("open"); setTimeout(()=>inp.focus(),150); };
+// Extrae el id del grupo de un link (?g=XXX) o de un código pegado directo.
+function extraerGid(txt){
+  txt=(txt||"").trim(); if(!txt) return "";
+  const m=txt.match(/[?&]g=([^&\s]+)/);
+  return m ? decodeURIComponent(m[1]) : txt;
+}
+function unirseAGrupo(){
+  const g=extraerGid($("ng-link").value);
+  if(!g){ alert("Pegá el link del grupo que te pasaron."); return; }
+  let P=st.proyectos.find(p=>p.id===g);
+  if(!P){ P={id:g, n:"Grupo compartido", remoto:g, emoji:null, cerrado:false, personas:[], gastos:[], liquidaciones:[], foto:null}; st.proyectos.push(P); }
+  else { P.remoto=g; P.cerrado=false; }
+  st.activo=g; persist(); vista="gastos"; render();
+  $("newGroupModal").classList.remove("open");
+  fetchRemoto(g);   // baja el estado del grupo ya mismo
+}
+$("projNew").onclick=()=>{ $("ng-nombre").value=""; $("ng-link").value=""; $("newGroupModal").classList.add("open"); setTimeout(()=>$("ng-nombre").focus(),150); };
 $("ng-ok").onclick=crearGrupo;
 $("ng-nombre").addEventListener("keydown",e=>{ if(e.key==="Enter") crearGrupo(); });
+$("ng-join").onclick=unirseAGrupo;
+$("ng-link").addEventListener("keydown",e=>{ if(e.key==="Enter") unirseAGrupo(); });
 $("ng-close").onclick=()=>$("newGroupModal").classList.remove("open");
 $("newGroupModal").onclick=e=>{ if(e.target.id==="newGroupModal") $("newGroupModal").classList.remove("open"); };
 $("grupoBtn").onclick=abrirGrupo;
