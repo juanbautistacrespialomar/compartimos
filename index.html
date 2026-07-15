@@ -18,9 +18,9 @@
     --bg:#0a0d1f; --card:#141a35; --card2:#1f284a; --border:#262f52;
     --txt:#eef1ff; --muted:#8890b8; --green:#6366f1; --teal:#818cf8; --amber:#fbbf24; --sky:#818cf8; --red:#f87171; --violet:#a855f7;
     --acc-dark:#4f46e5; --ok:#34d399; --glow:rgba(99,102,241,.30);
-    /* Vidrio de la barra flotante: derivado de --card2 (#1f284a) con alpha para que el
-       backdrop-filter tenga algo que hacer (si fuera opaco, el blur no se nota). */
-    --nav-glass:rgba(31,40,74,.68);
+    /* Vidrio de la barra flotante: derivado de --card (#141a35), que es el color de las superficies
+       elevadas de la app (.panel, .item). Con alpha para que el backdrop-filter tenga qué difuminar. */
+    --nav-glass:rgba(20,26,53,.72);
   }
   html { touch-action:manipulation; overscroll-behavior:none; }
   html,body { margin:0; background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; touch-action:manipulation; overscroll-behavior:none; overflow-x:hidden; width:100%; max-width:100%; }
@@ -84,6 +84,10 @@
   .logo { width:30px; height:30px; border-radius:8px; object-fit:cover; flex:none; }
   .btn { border:none; border-radius:13px; font:inherit; cursor:pointer; color:var(--txt); }
   .btn-ghost { background:var(--card2); padding:10px 13px; font-size:14px; display:inline-flex; align-items:center; gap:6px; border-radius:13px; }
+  /* Ícono de línea genérico para cualquier .btn: hereda el color del botón vía currentColor,
+     así el :active, el .danger y el color:var(--amber) inline siguen funcionando sin CSS extra. */
+  .btn .ic { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex:none; }
+  .btn.mini .ic { width:14px; height:14px; }
   .btn-ghost:active { background:#334155; }
   .projbar { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:6px 8px; margin-bottom:14px; gap:8px; }
   .projbar select { background:none; border:none; color:var(--txt); font-size:16px; font-weight:600; flex:1; padding:6px 4px; cursor:pointer; }
@@ -97,13 +101,14 @@
      y solo genera el aire alrededor; la píldora con glass y sombra es .bottomnav-inner.
      absolute contra el body (height:100dvh; position:relative), tal cual appdegastos. */
   .bottomnav { position:absolute; left:0; right:0; bottom:0; z-index:50; background:transparent; pointer-events:none; padding:0 14px calc(env(safe-area-inset-bottom) + 14px); }
-  .bottomnav-inner { max-width:440px; margin:0 auto; display:flex; position:relative; pointer-events:auto; background:var(--nav-glass); -webkit-backdrop-filter:blur(22px) saturate(1.5); backdrop-filter:blur(22px) saturate(1.5); border:1px solid var(--border); border-radius:26px; box-shadow:0 4px 16px rgba(0,0,0,.22); padding:6px 8px; }
+  .bottomnav-inner { max-width:440px; margin:0 auto; display:flex; position:relative; pointer-events:auto; background:var(--nav-glass); -webkit-backdrop-filter:blur(22px) saturate(1.5); backdrop-filter:blur(22px) saturate(1.5); border:1px solid var(--border); border-radius:26px; box-shadow:0 6px 24px rgba(2,6,23,.55), 0 0 20px var(--glow); padding:6px 8px; }
   .tab { flex:1; position:relative; display:flex; flex-direction:column; align-items:center; gap:3px; padding:8px 2px 7px; background:none; border:none; cursor:pointer; color:var(--muted); font:inherit; font-size:10px; font-weight:600; letter-spacing:.03em; text-transform:uppercase; transition:color .25s; }
   .tab svg { width:22px; height:22px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; position:relative; z-index:1; }
   .tab span { position:relative; z-index:1; }
-  .tab.active { color:var(--amber); }
-  /* La pastilla del activo envuelve ícono + label (en appdegastos abraza solo el ícono porque ahí no hay texto). */
-  .tab.active::before { content:""; position:absolute; inset:2px; background:rgba(251,191,36,.15); border-radius:18px; }
+  .tab.active { color:var(--sky); }
+  /* La pastilla del activo envuelve ícono + label (en appdegastos abraza solo el ícono porque ahí no hay texto).
+     Índigo --green con alpha, igual que el resto de los acentos de la app. */
+  .tab.active::before { content:""; position:absolute; inset:2px; background:rgba(99,102,241,.18); border-radius:18px; }
   /* Se queda en el DOM porque render() le escribe width/transform; oculto no molesta y no rompe el JS. */
   .tabind { display:none; }
   @keyframes tabpop { 0%{transform:scale(1)} 40%{transform:scale(1.28)} 100%{transform:scale(1)} }
@@ -818,7 +823,7 @@ function renderGrupoModal(){
      <div class="foto-edit">
        <div class="foto-prev" id="fotoPrev" style="${P.foto?`background-image:url('${P.foto}')`:''}"></div>
        <div style="display:flex;flex-direction:column;gap:7px">
-         <button class="btn btn-ghost" id="foto-btn" style="justify-content:flex-start">📷 ${P.foto?"Cambiar foto":"Elegir foto"}</button>
+         <button class="btn btn-ghost" id="foto-btn" style="justify-content:flex-start"><svg class="ic" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>${P.foto?"Cambiar foto":"Elegir foto"}</button>
          ${P.foto?`<button class="btn btn-ghost" id="foto-del" style="justify-content:flex-start;color:var(--red)">✕ Quitar foto</button>`:""}
        </div>
        <input type="file" id="foto-file" accept="image/*" style="display:none">
@@ -881,8 +886,8 @@ function renderAjustes(){
        ${cerrados.map(p=>`<div class="person-row" style="justify-content:space-between">
           <span style="display:flex;align-items:center;gap:8px;min-width:0"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.n)}</span></span>
           ${verId===p.id
-             ? `<button class="btn btn-ghost mini" data-dejarver="1" style="color:var(--amber)">✕ Dejar de ver</button>`
-             : `<button class="btn btn-ghost mini" data-ver="${p.id}">👁 Ver</button>`}
+             ? `<button class="btn btn-ghost mini" data-dejarver="1" style="color:var(--amber)"><svg class="ic" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/><line x1="3" y1="3" x2="21" y2="21"/></svg>Dejar de ver</button>`
+             : `<button class="btn btn-ghost mini" data-ver="${p.id}"><svg class="ic" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>Ver</button>`}
         </div>`).join("")}</div>`;
   $("content").innerHTML =
     `<div class="panel"><p class="ptitle">📁 Proyecto actual</p>
