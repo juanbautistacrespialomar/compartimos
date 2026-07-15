@@ -54,6 +54,7 @@
   .hero-salir:active { background:rgba(2,6,23,.68); }
   .hero-salir.show { display:inline-flex; }
   /* Aviso de solo lectura en grupos liquidados */
+  .rolock .ic { flex:none; }
   .rolock { display:flex; align-items:center; gap:8px; background:rgba(251,191,36,.12); border:1px solid rgba(251,191,36,.35); color:var(--amber); border-radius:14px; padding:10px 13px; font-size:12.5px; font-weight:600; margin-bottom:12px; line-height:1.35; }
   .hero-pill { display:inline-flex; align-items:center; gap:6px; margin-top:11px; background:rgba(2,6,23,.5); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); color:#fff; font-size:13px; font-weight:600; padding:7px 14px; border-radius:999px; }
   .sync-chip { display:none; align-items:center; gap:6px; margin-top:8px; margin-left:8px; background:rgba(2,6,23,.5); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); color:#fff; font-size:11px; font-weight:600; padding:6px 11px; border-radius:999px; vertical-align:middle; }
@@ -84,10 +85,12 @@
   .logo { width:30px; height:30px; border-radius:8px; object-fit:cover; flex:none; }
   .btn { border:none; border-radius:13px; font:inherit; cursor:pointer; color:var(--txt); }
   .btn-ghost { background:var(--card2); padding:10px 13px; font-size:14px; display:inline-flex; align-items:center; gap:6px; border-radius:13px; }
-  /* Ícono de línea genérico para cualquier .btn: hereda el color del botón vía currentColor,
-     así el :active, el .danger y el color:var(--amber) inline siguen funcionando sin CSS extra. */
-  .btn .ic { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex:none; }
-  .btn.mini .ic { width:14px; height:14px; }
+  /* Ícono de línea genérico. currentColor es la clave: hereda el color de quien lo contenga,
+     así .danger, :active o un color:var(--amber) inline pintan el ícono solos, sin CSS extra. */
+  .ic { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex:none; }
+  .btn.mini .ic, .undo .ic, .del .ic { width:14px; height:14px; }
+  /* Íconos embebidos en medio de una oración: necesitan alinearse a la baseline del texto. */
+  .ic-t { width:14px; height:14px; vertical-align:-2px; display:inline-block; }
   .btn-ghost:active { background:#334155; }
   .projbar { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:6px 8px; margin-bottom:14px; gap:8px; }
   .projbar select { background:none; border:none; color:var(--txt); font-size:16px; font-weight:600; flex:1; padding:6px 4px; cursor:pointer; }
@@ -115,7 +118,7 @@
   @keyframes viewin { from{opacity:0; transform:translateY(9px)} to{opacity:1; transform:none} }
   @media (prefers-reduced-motion: reduce){ .tabind{transition:none} .tab svg{animation:none !important} #content{animation:none !important} }
   .panel { background:var(--card); border:1px solid var(--border); border-radius:18px; padding:15px; margin-bottom:12px; box-shadow:0 4px 20px rgba(99,102,241,.07); }
-  .panel .ptitle { font-size:14px; font-weight:600; color:#cbd5e1; margin:0 0 10px; }
+  .panel .ptitle { font-size:14px; font-weight:600; color:#cbd5e1; margin:0 0 10px; display:flex; align-items:center; gap:7px; }
   .act-row { display:flex; gap:10px; padding:9px 0; border-top:1px solid var(--card2); }
   .act-row:first-of-type { border-top:none; padding-top:2px; }
   .act-dot { width:9px; height:9px; border-radius:50%; flex:none; margin-top:5px; }
@@ -128,7 +131,7 @@
   .item .desc { font-weight:500; display:flex; align-items:center; gap:6px; }
   .item .meta { font-size:12px; color:var(--muted); margin-top:2px; }
   .item .amt { font-weight:600; white-space:nowrap; }
-  .del { background:none; border:none; color:#475569; font-size:17px; cursor:pointer; padding:4px; }
+  .del { background:none; border:none; color:#475569; font-size:17px; cursor:pointer; padding:4px; display:inline-flex; align-items:center; }
   .del:active { color:var(--red); }
   /* Cruz para cerrar carteles: más grande y siempre en rojo */
   .mclose { color:var(--red); font-size:27px; font-weight:600; line-height:1; padding:2px 6px; }
@@ -151,7 +154,8 @@
   .person-row input { background:var(--card); }
   .chips { display:flex; flex-wrap:wrap; gap:8px; }
   .chip { display:inline-flex; align-items:center; gap:7px; background:var(--card); border:1px solid #334155; border-radius:999px; padding:7px 13px 7px 10px; font-size:13px; cursor:pointer; user-select:none; }
-  .chip .box { width:16px; height:16px; border-radius:5px; border:2px solid #475569; display:inline-flex; align-items:center; justify-content:center; font-size:11px; color:#020617; flex:none; }
+  .chip .box { width:16px; height:16px; border-radius:5px; border:2px solid #475569; display:inline-flex; align-items:center; justify-content:center; color:#020617; flex:none; }
+  .ic-box { width:11px; height:11px; stroke:#020617; fill:none; stroke-width:3.5; stroke-linecap:round; stroke-linejoin:round; }
   .chip.on { border-color:var(--green); background:#0b2a22; }
   .chip.on .box { background:var(--green); border-color:var(--green); }
   .chip .pdot { width:9px; height:9px; border-radius:50%; flex:none; }
@@ -180,8 +184,8 @@
   .pay-done:active { background:#14532d; }
   .paid-row { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:7px 0; border-bottom:1px solid #16202e; font-size:13px; color:#94a3b8; }
   .paid-row:last-child { border-bottom:none; }
-  .undo { background:none; border:none; color:var(--sky); font-size:13px; cursor:pointer; padding:4px 6px; }
-  .settled { text-align:center; color:var(--green); padding:18px 10px; font-size:14px; }
+  .undo { background:none; border:none; color:var(--sky); font-size:13px; cursor:pointer; padding:4px 6px; display:inline-flex; align-items:center; gap:5px; }
+  .settled { display:flex; align-items:center; justify-content:center; gap:8px; color:var(--green); padding:18px 10px; font-size:14px; }
   .toggle { display:flex; gap:4px; background:var(--card2); border-radius:12px; padding:3px; }
   .toggle button { flex:1; border:none; background:none; color:var(--muted); font:inherit; font-size:12px; padding:6px; border-radius:9px; cursor:pointer; }
   .toggle button.on { background:var(--card); color:#fff; }
@@ -200,6 +204,7 @@
   .welcome-bg { position:fixed; inset:0; z-index:200; background:var(--bg); display:none; align-items:center; justify-content:center; padding:24px; }
   .welcome-bg.open { display:flex; }
   .welcome-card { width:100%; max-width:360px; text-align:center; animation:viewin .4s ease; }
+  .welcome-logo-fb { width:76px; height:76px; margin:0 auto 18px; stroke:var(--sky); fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
   .welcome-logo { width:76px; height:76px; border-radius:22px; object-fit:cover; margin:0 auto 18px; display:block; box-shadow:0 10px 30px rgba(99,102,241,.35); }
   .welcome-card h2 { font-size:24px; margin:0 0 6px; font-weight:700; }
   .welcome-card p { color:var(--muted); font-size:14px; line-height:1.55; margin:0 0 22px; }
@@ -214,23 +219,23 @@
 <div class="hero no-foto" id="hero">
   <div class="hero-shade"></div>
   <div class="hero-top">
-    <button class="hero-btn" id="exportBtn" title="Exportar CSV">⤓</button>
+    <button class="hero-btn" id="exportBtn" title="Exportar CSV" aria-label="Exportar CSV"><span data-ic="download"></span></button>
     <div style="display:flex;gap:9px">
-      <button class="hero-btn" id="projNew" title="Nuevo grupo">＋</button>
-      <button class="hero-btn" id="grupoBtn" title="Ajustes del grupo" aria-label="Ajustes del grupo"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+      <button class="hero-btn" id="projNew" title="Nuevo grupo" aria-label="Nuevo grupo"><span data-ic="plus"></span></button>
+      <button class="hero-btn" id="grupoBtn" title="Ajustes del grupo" aria-label="Ajustes del grupo"><span data-ic="gear"></span></button>
     </div>
   </div>
   <div class="hero-foot">
     <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
       <div class="hero-title">
         <span id="heroName">Grupo</span>
-        <span class="hero-chev">▾</span>
+        <span class="hero-chev"><span data-ic="chevDown"></span></span>
         <select id="projSel" class="hero-select" aria-label="Cambiar de grupo"></select>
       </div>
-      <button class="hero-reabrir" id="heroReabrir">↺ Reabrir</button>
-      <button class="hero-salir" id="heroSalir">← Dejar de ver</button>
+      <button class="hero-reabrir" id="heroReabrir"><span data-ic="rotate"></span>Reabrir</button>
+      <button class="hero-salir" id="heroSalir"><span data-ic="arrowLeft"></span>Dejar de ver</button>
     </div>
-    <span class="hero-pill" id="heroSub">👥 0 personas</span>
+    <span class="hero-pill" id="heroSub"><span data-ic="users"></span>0 personas</span>
     <span class="sync-chip" id="syncChip"><span class="sdot"></span><span id="syncTxt">Sincronizado</span></span>
   </div>
 </div>
@@ -257,13 +262,13 @@
 <button id="fab" title="Cargar gasto">＋</button>
 
 <div id="updateBar" class="update-bar">
-  <span class="ub-txt">✨ Hay una versión nueva</span>
+  <span class="ub-txt"><span data-ic="refresh"></span>Hay una versión nueva</span>
   <button id="update-btn">Actualizar</button>
 </div>
 
 <div id="modal" class="modal-bg">
   <div class="modal">
-    <div class="row between" style="margin-bottom:6px"><strong id="m-title">Nuevo gasto</strong><button id="m-close" class="del mclose">✕</button></div>
+    <div class="row between" style="margin-bottom:6px"><strong id="m-title">Nuevo gasto</strong><button id="m-close" class="del mclose"><span data-ic="x"></span></button></div>
     <div class="grid">
       <input class="full" type="text" inputmode="decimal" id="q-monto" placeholder="Monto ($)  ej: 13500">
       <input class="full" type="text" id="q-desc" placeholder="Descripción">
@@ -295,24 +300,25 @@
 
 <div id="grupoModal" class="modal-bg">
   <div class="modal">
-    <div class="row between" style="margin-bottom:10px"><strong>Ajustes del grupo</strong><button id="g-close" class="del mclose">✕</button></div>
+    <div class="row between" style="margin-bottom:10px"><strong>Ajustes del grupo</strong><button id="g-close" class="del mclose"><span data-ic="x"></span></button></div>
     <div id="grupoBody"></div>
   </div>
 </div>
 
 <div id="welcome" class="welcome-bg">
   <div class="welcome-card">
-    <img class="welcome-logo" src="Logo.png" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{textContent:'💸',style:'font-size:56px;margin:0 auto 18px'}))">
+    <img class="welcome-logo" src="Logo.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+    <svg class="welcome-logo-fb" viewBox="0 0 24 24" style="display:none"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg>
     <h2>¡Bienvenido!</h2>
     <p>¿Cómo te llamás? Así tus amigos ven quién cargó cada gasto.</p>
     <input type="text" id="w-nombre" placeholder="Tu nombre" autocomplete="name" enterkeyhint="done">
-    <button class="btn btn-add" id="w-ok">Empezar →</button>
+    <button class="btn btn-add" id="w-ok">Empezar<span data-ic="arrowRight"></span></button>
   </div>
 </div>
 
 <div id="newGroupModal" class="modal-bg">
   <div class="modal">
-    <div class="row between" style="margin-bottom:6px"><strong>Nuevo grupo</strong><button id="ng-close" class="del mclose">✕</button></div>
+    <div class="row between" style="margin-bottom:6px"><strong>Nuevo grupo</strong><button id="ng-close" class="del mclose"><span data-ic="x"></span></button></div>
     <p style="font-size:13px;color:var(--muted);margin:0 0 12px">Ponele un nombre. Después le agregás la foto y las personas.</p>
     <input type="text" id="ng-nombre" placeholder="Ej: Asado del finde" enterkeyhint="done" autocomplete="off">
     <button class="btn btn-add" id="ng-ok" style="margin-top:14px;width:100%">＋ Crear grupo</button>
@@ -323,11 +329,55 @@
     </div>
     <p style="font-size:13px;color:var(--muted);margin:0 0 10px">¿Un amigo te pasó un grupo? Pegá el <b>link</b> o el <b>código</b> para unirte.</p>
     <input type="text" id="ng-link" placeholder="Link o código (ej: K7XM2Q)" enterkeyhint="go" autocomplete="off" autocapitalize="characters">
-    <button class="btn btn-ghost" id="ng-join" style="margin-top:12px;width:100%;justify-content:center">🔗 Unirme al grupo</button>
+    <button class="btn btn-ghost" id="ng-join" style="margin-top:12px;width:100%;justify-content:center"><span data-ic="link"></span>Unirme al grupo</button>
   </div>
 </div>
 
 <script>
+/* ===== Set de íconos de línea (24x24, trazo, estilo Feather) =====
+   Un solo lugar donde vive la geometría. ic(nombre) devuelve el <svg> como string
+   para interpolarlo en los template literals. Heredan el color con currentColor y
+   el tamaño con la clase .ic, así un botón .danger te pinta el ícono en rojo solo. */
+const IC = {
+  check:'<polyline points="20 6 9 17 4 12"/>',
+  checkCircle:'<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
+  x:'<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+  plus:'<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+  users:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  clock:'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  pie:'<path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/>',
+  scale:'<path d="M12 3v18"/><path d="M5 7h14"/><path d="M6.5 7 3 14h7z"/><path d="M17.5 7 14 14h7z"/><path d="M8 21h8"/>',
+  card:'<rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>',
+  lock:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  trash:'<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+  undo:'<polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/>',
+  rotate:'<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>',
+  refresh:'<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>',
+  arrowLeft:'<line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>',
+  arrowRight:'<line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>',
+  chevDown:'<polyline points="6 9 12 15 18 9"/>',
+  chevUp:'<polyline points="18 15 12 9 6 15"/>',
+  link:'<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+  share:'<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>',
+  clipboard:'<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>',
+  image:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>',
+  camera:'<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>',
+  bulb:'<path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V18h8v-3.3A7 7 0 0 0 12 2z"/>',
+  archive:'<rect x="2" y="4" width="20" height="5" rx="1"/><path d="M4 9v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9"/><line x1="10" y1="14" x2="14" y2="14"/>',
+  folder:'<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>',
+  gear:'<circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+  download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+  upload:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
+  eye:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
+  eyeOff:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/><line x1="3" y1="3" x2="21" y2="21"/>',
+  wallet:'<path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/>'
+};
+const ic = (n, cls="ic") => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${IC[n]||""}</svg>`;
+/* El HTML estático se parsea antes que este script, así que ahí no puedo llamar a ic().
+   En vez de duplicar la geometría inline, dejo <span data-ic="nombre"> y lo hidrato acá.
+   Corre en cuanto el script se evalúa: todo el markup estático ya está en el DOM (el <script>
+   está al final del body), así que no hay flash ni hace falta esperar el DOMContentLoaded. */
+document.querySelectorAll("[data-ic]").forEach(e=>{ e.outerHTML = ic(e.dataset.ic, e.dataset.icCls || "ic"); });
 "use strict";
 const CATS = ["Cancha","Comida","Bebida","Supermercado","Transporte","Entradas","Alojamiento","Servicios","Regalos","Otros"];
 const CCOL = { "Cancha":"#84cc16","Comida":"#22c55e","Bebida":"#f59e0b","Supermercado":"#fb923c","Transporte":"#3b82f6","Entradas":"#a855f7","Alojamiento":"#14b8a6","Servicios":"#06b6d4","Regalos":"#f43f5e","Otros":"#64748b" };
@@ -426,10 +476,10 @@ async function compartirProyecto(){
     for(const l of P.liquidaciones) await apiPost("/p/"+P.id+"/liquidacion", {id:l.id, de_persona:l.de, a_persona:l.a, monto:l.monto, fecha:l.fecha});
     for(const a of (P.actividad||[])) await apiPost("/p/"+P.id+"/actividad", {id:a.id, ts:a.ts, quien:a.quien, tipo:a.tipo, det:a.det, monto:a.monto});
     P.remoto=P.id; P.creador=true; persist(); render();
-    alert("¡Listo! Este proyecto ya está compartido. Pasales el link a tus amigos ✓");
+    alert("¡Listo! Este proyecto ya está compartido. Pasales el link a tus amigos.");
   }catch(e){
     alert("No se pudo compartir: "+e.message+". Probá de nuevo con conexión.");
-    if(btn){ btn.disabled=false; btn.textContent="🔗 Compartir con amigos"; }
+    if(btn){ btn.disabled=false; btn.innerHTML=ic("link")+"Compartir con amigos"; }
   }
 }
 
@@ -589,11 +639,12 @@ function renderHero(){
   const {bal}=computar(); const pagos=liquidar(bal);
   const nP=P.personas.length;
   let estado = !P.gastos.length ? "sin gastos aún"
-    : (pagos.length ? `${pagos.length} pago${pagos.length>1?"s":""} pendiente${pagos.length>1?"s":""}` : "✓ todo saldado");
+    : (pagos.length ? `${pagos.length} pago${pagos.length>1?"s":""} pendiente${pagos.length>1?"s":""}` : `${ic("check","ic-t")} todo saldado`);
   const viendoCerrado = !!verId && P.cerrado;
   $("heroReabrir").classList.toggle("show", viendoCerrado && puedeCerrar(P));
   $("heroSalir").classList.toggle("show", viendoCerrado);
-  $("heroSub").textContent = (viendoCerrado ? "📦 Liquidado · " : "") + `👥 ${nP} ${nP===1?"persona":"personas"} · ${estado}`;
+  // innerHTML (antes textContent) porque ahora inyectamos SVG. Seguro: nP es number y estado es texto propio, no input del usuario.
+  $("heroSub").innerHTML = (viendoCerrado ? `${ic("archive")} Liquidado · ` : "") + `${ic("users")} ${nP} ${nP===1?"persona":"personas"} · ${estado}`;
   actualizarSync();
 }
 // Chip de estado de sincronización (solo en grupos compartidos).
@@ -697,13 +748,13 @@ function actividadHTML(){
         <span class="act-time">${tiempoRel(a.ts)}</span>
       </div>`;
   }).join("");
-  const btn = acts.length>10 ? `<button class="btn btn-ghost mini" id="actVerTodo" style="width:100%;margin-top:10px">${actExpandida?"Ver menos ▲":"Ver todo ("+acts.length+") ▼"}</button>` : "";
-  return `<div class="panel"><p class="ptitle">🕒 Actividad reciente</p>${filas}${btn}</div>`;
+  const btn = acts.length>10 ? `<button class="btn btn-ghost mini" id="actVerTodo" style="width:100%;margin-top:10px">${actExpandida?`Ver menos ${ic("chevUp")}`:`Ver todo (${acts.length}) ${ic("chevDown")}`}</button>` : "";
+  return `<div class="panel"><p class="ptitle">${ic("clock")} Actividad reciente</p>${filas}${btn}</div>`;
 }
 
 function renderResumen(bal,total){
   const P=proy();
-  if(!P.personas.length){ $("content").innerHTML=`<div class="empty">Agregá personas al grupo <b>${esc(P.n)}</b> desde la ⚙️ de arriba.</div>`; return; }
+  if(!P.personas.length){ $("content").innerHTML=`<div class="empty">Agregá personas al grupo <b>${esc(P.n)}</b> desde el ${ic("gear","ic-t")} de arriba.</div>`; return; }
   if(!P.gastos.length){ $("content").innerHTML=`<div class="empty">Todavía no cargaste gastos en <b>${esc(P.n)}</b>.<br>Tocá <b>＋</b> para el primero.</div>` + actividadHTML(); const vt0=$("actVerTodo"); if(vt0) vt0.onclick=()=>{ actExpandida=!actExpandida; render(); }; return; }
   let tdata, ttotal;
   if(modoTorta==="cat"){
@@ -717,7 +768,7 @@ function renderResumen(bal,total){
   const leyenda=tdata.map(x=>`<div class="legend-row"><span><span class="dot" style="background:${x.color}"></span>${esc(x.name)}</span>
     <span>${fmt(x.value)} <span class="pct">(${ttotal?((x.value/ttotal)*100).toFixed(0):0}%)</span></span></div>`).join("");
   $("content").innerHTML =
-    `<div class="panel"><div class="row between" style="margin-bottom:10px"><p class="ptitle" style="margin:0">🥧 Gastos por rubro</p>
+    `<div class="panel"><div class="row between" style="margin-bottom:10px"><p class="ptitle" style="margin:0">${ic("pie")} Gastos por rubro</p>
         <div class="toggle" style="width:170px"><button data-t="cat" class="${modoTorta==='cat'?'on':''}">Categoría</button><button data-t="pag" class="${modoTorta==='pag'?'on':''}">Quién pagó</button></div></div>
         ${donut(tdata,ttotal)}<div style="margin-top:8px">${leyenda}</div></div>` + actividadHTML();
   $("content").querySelectorAll(".toggle button").forEach(b=>b.onclick=()=>{ modoTorta=b.dataset.t; render(); });
@@ -726,24 +777,24 @@ function renderResumen(bal,total){
 
 function renderSaldos(bal,total){
   const P=proy();
-  if(!P.personas.length){ $("content").innerHTML=`<div class="empty">Agregá personas al grupo <b>${esc(P.n)}</b> desde la ⚙️ de arriba.</div>`; return; }
+  if(!P.personas.length){ $("content").innerHTML=`<div class="empty">Agregá personas al grupo <b>${esc(P.n)}</b> desde el ${ic("gear","ic-t")} de arriba.</div>`; return; }
   const filas = P.personas.map(p=>({id:p.id, n:p.n, net:bal[p.id]||0})).sort((a,b)=>b.net-a.net)
     .map(x=>{ const tag=x.net>0.5?"le deben":x.net<-0.5?"debe":"a mano"; const cls=x.net>0.5?"saldo-pos":x.net<-0.5?"saldo-neg":"";
       return `<div class="bal"><div class="who"><span class="pdot" style="background:${pColor(x.id)}"></span><span>${esc(x.n)}</span></div>
         <div class="net ${cls}">${fmt(Math.abs(x.net))}<span class="tag">${tag}</span></div></div>`; }).join("");
   $("content").innerHTML =
-    `<div class="panel"><p class="ptitle">⚖️ Balances</p>${filas}
+    `<div class="panel"><p class="ptitle">${ic("scale")} Balances</p>${filas}
        <p style="font-size:11px;color:var(--muted);margin:10px 2px 0">"Le deben" = puso de más · "Debe" = puso de menos.</p></div>
      <div class="panel"><div class="row between"><span style="font-size:13px;color:var(--muted)">Total gastado del grupo</span><b style="color:var(--green);font-size:18px">${fmt(total)}</b></div></div>`;
 }
 
 function renderLiquidar(bal,total){
   const P=proy(); const ro=soloLectura();
-  if(!P.personas.length){ $("content").innerHTML=`<div class="empty">Agregá personas al grupo <b>${esc(P.n)}</b> desde la ⚙️ de arriba.</div>`; return; }
+  if(!P.personas.length){ $("content").innerHTML=`<div class="empty">Agregá personas al grupo <b>${esc(P.n)}</b> desde el ${ic("gear","ic-t")} de arriba.</div>`; return; }
   if(!P.gastos.length){ $("content").innerHTML=`<div class="empty">Todavía no hay gastos para liquidar en <b>${esc(P.n)}</b>.</div>`; return; }
   const pagos=liquidar(bal);
   let flechas = !pagos.length
-    ? `<div class="settled">✓ Están todos a mano. Nadie le debe nada a nadie.</div>`
+    ? `<div class="settled">${ic("checkCircle")}<span>Están todos a mano. Nadie le debe nada a nadie.</span></div>`
     : pagos.map(p=>`
         <div class="payrow">
           <div class="pay">
@@ -751,19 +802,19 @@ function renderLiquidar(bal,total){
             <span class="arrow"><span class="line"></span><span class="head"></span><span class="amt">${fmt(p.monto)}</span></span>
             <span class="who"><span class="pdot" style="background:${pColor(p.a)}"></span>${esc(pName(p.a))}</span>
           </div>
-          ${ro?"":`<div class="pay-act"><button class="btn pay-done mini" data-de="${p.de}" data-a="${p.a}" data-m="${p.monto}">✓ Marcar como pagado</button></div>`}
+          ${ro?"":`<div class="pay-act"><button class="btn pay-done mini" data-de="${p.de}" data-a="${p.a}" data-m="${p.monto}">${ic("check")} Marcar como pagado</button></div>`}
         </div>`).join("");
   let hechos="";
   if((P.liquidaciones||[]).length){
-    hechos = `<div class="panel"><p class="ptitle">✅ Pagos ya hechos</p>` +
+    hechos = `<div class="panel"><p class="ptitle">${ic("checkCircle")} Pagos ya hechos</p>` +
       P.liquidaciones.map(l=>`<div class="paid-row">
-        <span><span class="pdot" style="background:${pColor(l.de)};display:inline-block;vertical-align:-1px"></span> ${esc(pName(l.de))} → ${esc(pName(l.a))} · <b style="color:#cbd5e1">${fmt(l.monto)}</b> <span style="color:#475569">${fechaCorta(l.fecha)}</span></span>
-        ${ro?"":`<button class="undo" data-undo="${l.id}">↩ deshacer</button>`}</div>`).join("") + `</div>`;
+        <span><span class="pdot" style="background:${pColor(l.de)};display:inline-block;vertical-align:-1px"></span> ${esc(pName(l.de))} ${ic("arrowRight","ic-t")} ${esc(pName(l.a))} · <b style="color:#cbd5e1">${fmt(l.monto)}</b> <span style="color:#475569">${fechaCorta(l.fecha)}</span></span>
+        ${ro?"":`<button class="undo" data-undo="${l.id}">${ic("undo")} deshacer</button>`}</div>`).join("") + `</div>`;
   }
   $("content").innerHTML =
-    (ro?`<div class="rolock"><span>🔒</span><span>Grupo liquidado · solo lectura. Reabrilo (botón ↺ arriba) para registrar o deshacer pagos.</span></div>`:"") +
-    `<div class="panel"><div class="row between" style="margin-bottom:8px"><p class="ptitle" style="margin:0">💳 Quién le transfiere a quién</p>
-        <button class="btn btn-ghost mini" id="fotoBtn">📷 Compartir imagen</button></div>${flechas}
+    (ro?`<div class="rolock">${ic("lock")}<span>Grupo liquidado · solo lectura. Reabrilo (botón ${ic("rotate","ic-t")} arriba) para registrar o deshacer pagos.</span></div>`:"") +
+    `<div class="panel"><div class="row between" style="margin-bottom:8px"><p class="ptitle" style="margin:0">${ic("card")} Quién le transfiere a quién</p>
+        <button class="btn btn-ghost mini" id="fotoBtn">${ic("image")} Compartir imagen</button></div>${flechas}
        ${pagos.length?`<p style="font-size:11px;color:var(--muted);margin:8px 2px 0">Combinado en las menos transferencias posibles (${pagos.length}).</p>`:""}</div>
      ${hechos}`;
   $("fotoBtn").onclick=exportarFoto;
@@ -784,16 +835,16 @@ function renderGastos(){
   if(!P.gastos.length){ $("content").innerHTML=`<div class="empty">${ro?`No hay gastos en <b>${esc(P.n)}</b>.`:`Sin gastos en <b>${esc(P.n)}</b>. Tocá <b>＋</b> para cargar uno.`}</div>`; return; }
   const ord=[...P.gastos].sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")||0);
   const total=ord.reduce((s,g)=>s+g.monto,0);
-  let h = ro ? `<div class="rolock"><span>🔒</span><span>Grupo liquidado · solo lectura. Reabrilo (botón ↺ arriba) para cargar o editar.</span></div>` : "";
+  let h = ro ? `<div class="rolock">${ic("lock")}<span>Grupo liquidado · solo lectura. Reabrilo (botón ${ic("rotate","ic-t")} arriba) para cargar o editar.</span></div>` : "";
   h+=`<div class="grouphdr"><span>${ord.length} gasto${ord.length===1?"":"s"}</span><span>${fmt(total)}</span><span style="text-transform:none;letter-spacing:0">${ro?"solo lectura":"tocá para editar"}</span></div>`;
   h+= ord.map(g=>{ const part=(g.part||[]); const col=CCOL[g.cat]||"#64748b";
     const quienes = part.length>=P.personas.length ? "todos" : part.map(pName).join(", ");
-    const rep = g.reparto && g.reparto.modo ? ` · ⚖ ${g.reparto.modo}` : "";
+    const rep = g.reparto && g.reparto.modo ? ` · ${ic("scale","ic-t")} ${g.reparto.modo}` : "";
     const meta=`${g.cat} · pagó ${esc(pName(g.pagador))} · entre ${part.length} (${esc(quienes)})${rep}${g.fecha?" · "+fechaCorta(g.fecha):""}`;
     return `<div class="item"${ro?"":` data-edit="${g.id}" style="cursor:pointer"`}><div style="display:flex;align-items:center;gap:10px;min-width:0">
         <span class="bar" style="background:${col}"></span>
         <div style="min-width:0"><div class="desc">${esc(g.desc||g.cat)}</div><div class="meta">${meta}</div></div></div>
-      <div style="display:flex;align-items:center;gap:6px"><span class="amt">${fmt(g.monto)}</span>${ro?"":`<button class="del del-g" data-id="${g.id}">🗑</button>`}</div></div>`; }).join("");
+      <div style="display:flex;align-items:center;gap:6px"><span class="amt">${fmt(g.monto)}</span>${ro?"":`<button class="del del-g" data-id="${g.id}">${ic("trash")}</button>`}</div></div>`; }).join("");
   $("content").innerHTML=h;
   if(ro) return;
   $("content").querySelectorAll(".item[data-edit]").forEach(el=>el.onclick=e=>{ if(e.target.closest(".del")) return; abrirModal(el.dataset.edit); });
@@ -805,26 +856,26 @@ function renderGrupoModal(){
   const personasHtml = !P.personas.length
     ? `<div class="empty" style="padding:8px">Agregá a los participantes del grupo.</div>`
     : P.personas.map((p,i)=>`<div class="person-row"><span class="swatch" style="background:${PCOL[i%PCOL.length]}"></span>
-        <input data-pid="${p.id}" value="${esc(p.n)}"><button class="del del-p" data-id="${p.id}">🗑</button></div>`).join("");
+        <input data-pid="${p.id}" value="${esc(p.n)}"><button class="del del-p" data-id="${p.id}">${ic("trash")}</button></div>`).join("");
   const compartirHtml = P.remoto
     ? `<p style="font-size:12px;color:var(--muted);margin-bottom:6px">Código del grupo — dictalo o que lo carguen en "Unirme":</p>
        <div class="code-box"><span class="code" id="codeGrupo">${esc(P.id)}</span><button class="cbtn" id="copiarCode">Copiar</button></div>
        <p style="font-size:12px;color:var(--muted);margin:0 0 6px">o pasales el link directo:</p>
        <input id="linkGrupo" readonly value="${esc(linkGrupo(P))}" style="margin-bottom:8px;font-size:12px">
        <div class="row" style="gap:8px">
-         <button class="btn btn-add" id="compartirTodo" style="flex:1;width:auto">📤 Compartir</button>
-         <button class="btn btn-ghost" id="copiarLink" style="flex:none">📋 Link</button>
+         <button class="btn btn-add" id="compartirTodo" style="flex:1;width:auto">${ic("share")} Compartir</button>
+         <button class="btn btn-ghost" id="copiarLink" style="flex:none">${ic("clipboard")} Link</button>
        </div>
-       <p style="font-size:11px;color:var(--muted);margin:10px 0 0">💡 Si tu amigo ya tiene la app: que la abra, toque <b>＋</b> y elija <b>Unirme al grupo</b> con el código o el link.</p>`
+       <p style="font-size:11px;color:var(--muted);margin:10px 0 0">${ic("bulb","ic-t")} Si tu amigo ya tiene la app: que la abra, toque <b>＋</b> y elija <b>Unirme al grupo</b> con el código o el link.</p>`
     : `<p style="font-size:12px;color:var(--muted);margin-bottom:8px">Subilo a la nube para que tus amigos carguen gastos con vos.</p>
-       <button class="btn btn-ghost" id="compartirBtn">🔗 Compartir con amigos</button>`;
+       <button class="btn btn-ghost" id="compartirBtn">${ic("link")} Compartir con amigos</button>`;
   $("grupoBody").innerHTML =
     `<label style="font-size:11px;color:var(--muted)">Foto de portada</label>
      <div class="foto-edit">
        <div class="foto-prev" id="fotoPrev" style="${P.foto?`background-image:url('${P.foto}')`:''}"></div>
        <div style="display:flex;flex-direction:column;gap:7px">
-         <button class="btn btn-ghost" id="foto-btn" style="justify-content:flex-start"><svg class="ic" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>${P.foto?"Cambiar foto":"Elegir foto"}</button>
-         ${P.foto?`<button class="btn btn-ghost" id="foto-del" style="justify-content:flex-start;color:var(--red)">✕ Quitar foto</button>`:""}
+         <button class="btn btn-ghost" id="foto-btn" style="justify-content:flex-start">${ic("camera")}${P.foto?"Cambiar foto":"Elegir foto"}</button>
+         ${P.foto?`<button class="btn btn-ghost" id="foto-del" style="justify-content:flex-start;color:var(--red)">${ic("x")} Quitar foto</button>`:""}
        </div>
        <input type="file" id="foto-file" accept="image/*" style="display:none">
      </div>
@@ -834,9 +885,9 @@ function renderGrupoModal(){
      <label style="font-size:11px;color:var(--muted)">Personas</label>
      <div style="margin:6px 0 4px">${personasHtml}</div>
      <div class="row" style="gap:8px;margin-bottom:16px"><input id="np" type="text" placeholder="Nombre"><button class="btn btn-add" id="addp" style="width:auto;padding:10px 16px">＋</button></div>
-     <label style="font-size:11px;color:var(--muted)">🔗 Compartir</label>
+     <label style="font-size:11px;color:var(--muted)">${ic("link","ic-t")} Compartir</label>
      <div style="margin-top:6px">${compartirHtml}</div>
-     <button class="btn g-save" id="g-guardar" style="margin-top:18px">✓ Guardar y cerrar</button>`;
+     <button class="btn g-save" id="g-guardar" style="margin-top:18px">${ic("check")} Guardar y cerrar</button>`;
 
   $("foto-btn").onclick=()=>$("foto-file").click();
   $("foto-file").onchange=e=>{ const f=e.target.files[0]; if(!f) return; comprimirImagen(f, url=>{ const P=proy(); P.foto=url; logAct(P,"foto",""); syncProyecto(P); persist(); render(); renderGrupoModal(); }); e.target.value=""; };
@@ -858,14 +909,14 @@ function renderGrupoModal(){
   const add=()=>{ const v=$("np").value.trim(); if(!v) return; const P=proy(); const np={id:newId(), n:v}; P.personas.push(np); logAct(P,"panadd",np.n); sync(P,"POST","/p/"+P.id+"/persona",{id:np.id, nombre:np.n}); persist(); render(); renderGrupoModal(); setTimeout(()=>{const n=$("np"); if(n)n.focus();},0); };
   $("addp").onclick=add; $("np").addEventListener("keydown",e=>{ if(e.key==="Enter") add(); });
   if($("compartirBtn")) $("compartirBtn").onclick=async()=>{ await compartirProyecto(); renderGrupoModal(); };
-  if($("copiarLink")) $("copiarLink").onclick=()=>{ const i=$("linkGrupo"); i.select(); i.setSelectionRange(0,9999); try{navigator.clipboard.writeText(i.value);}catch(e){document.execCommand("copy");} alert("Link copiado ✓"); };
-  if($("copiarCode")) $("copiarCode").onclick=()=>{ try{navigator.clipboard.writeText(P.id);}catch(e){} alert("Código copiado ✓"); };
+  if($("copiarLink")) $("copiarLink").onclick=()=>{ const i=$("linkGrupo"); i.select(); i.setSelectionRange(0,9999); try{navigator.clipboard.writeText(i.value);}catch(e){document.execCommand("copy");} alert("Link copiado."); };
+  if($("copiarCode")) $("copiarCode").onclick=()=>{ try{navigator.clipboard.writeText(P.id);}catch(e){} alert("Código copiado."); };
   if($("compartirTodo")) $("compartirTodo").onclick=async()=>{
-    const texto=`Sumate a "${P.n}" en Compartimos 💸\n\nCódigo del grupo: ${P.id}\nLink: ${linkGrupo(P)}\n\n(Si ya tenés la app, abrila, tocá ＋ y "Unirme al grupo").`;
+    const texto=`Sumate a "${P.n}" en Compartimos\n\nCódigo del grupo: ${P.id}\nLink: ${linkGrupo(P)}\n\n(Si ya tenés la app, abrila, tocá ＋ y "Unirme al grupo").`;
     try{
       if(navigator.share){ await navigator.share({title:"Compartimos · "+P.n, text:texto}); return; }
     }catch(e){ if(e && e.name==="AbortError") return; }
-    try{ await navigator.clipboard.writeText(texto); alert("Código y link copiados ✓ Pegalos donde quieras."); }
+    try{ await navigator.clipboard.writeText(texto); alert("Código y link copiados. Pegalos donde quieras."); }
     catch(e){ alert("Código: "+P.id+"\nLink: "+linkGrupo(P)); }
   };
   $("g-guardar").onclick=()=>{
@@ -881,30 +932,30 @@ function renderAjustes(){
   const P=proy();
   const cerrados = st.proyectos.filter(p=>p.cerrado);
   const liquidadosHtml = !cerrados.length ? "" :
-    `<div class="panel"><p class="ptitle">📦 Grupos liquidados</p>
+    `<div class="panel"><p class="ptitle">${ic("archive")} Grupos liquidados</p>
        <p style="font-size:11px;color:var(--muted);margin:0 0 10px">No aparecen en el inicio. Tocá "Ver" para consultarlos; adentro podés reabrirlos si hace falta.</p>
        ${cerrados.map(p=>`<div class="person-row" style="justify-content:space-between">
           <span style="display:flex;align-items:center;gap:8px;min-width:0"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.n)}</span></span>
           ${verId===p.id
-             ? `<button class="btn btn-ghost mini" data-dejarver="1" style="color:var(--amber)"><svg class="ic" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/><line x1="3" y1="3" x2="21" y2="21"/></svg>Dejar de ver</button>`
-             : `<button class="btn btn-ghost mini" data-ver="${p.id}"><svg class="ic" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>Ver</button>`}
+             ? `<button class="btn btn-ghost mini" data-dejarver="1" style="color:var(--amber)">${ic("eyeOff","ic")}Dejar de ver</button>`
+             : `<button class="btn btn-ghost mini" data-ver="${p.id}">${ic("eye","ic")}Ver</button>`}
         </div>`).join("")}</div>`;
   $("content").innerHTML =
-    `<div class="panel"><p class="ptitle">📁 Proyecto actual</p>
+    `<div class="panel"><p class="ptitle">${ic("folder")} Proyecto actual</p>
        <label style="font-size:11px;color:var(--muted)">Nombre</label>
        <input id="projName" value="${esc(P.n)}" style="margin:5px 0 10px" ${P.cerrado?"disabled":""}>
        ${puedeCerrar(P)
           ? (P.cerrado
-              ? `<button class="btn btn-ghost" id="projReopen" style="margin-bottom:8px">↺ Reabrir este grupo</button>`
-              : `<button class="btn btn-ghost" id="projClose" style="margin-bottom:8px">✓ Cerrar grupo (marcarlo como liquidado)</button>`)
+              ? `<button class="btn btn-ghost" id="projReopen" style="margin-bottom:8px">${ic("rotate")} Reabrir este grupo</button>`
+              : `<button class="btn btn-ghost" id="projClose" style="margin-bottom:8px">${ic("check")} Cerrar grupo (marcarlo como liquidado)</button>`)
           : `<p style="font-size:11px;color:var(--muted);margin:0 0 8px">${P.cerrado?"Este grupo lo liquidó quien lo creó.":"El cierre lo maneja quien creó el grupo."} Si no querés verlo más, borralo acá abajo.</p>`}
-       <button class="btn btn-ghost danger" id="projDel">🗑 Borrar este grupo</button></div>
+       <button class="btn btn-ghost danger" id="projDel">${ic("trash")} Borrar este grupo</button></div>
      ${liquidadosHtml}
-     <div class="panel"><p class="ptitle">⚙️ Datos y backup</p>
-       <button class="btn btn-ghost" id="backup" style="margin-bottom:8px">⬇️ Descargar backup (todos los proyectos)</button>
-       <button class="btn btn-ghost" id="importBtn" style="margin-bottom:8px">⬆️ Restaurar desde backup</button>
+     <div class="panel"><p class="ptitle">${ic("gear")} Datos y backup</p>
+       <button class="btn btn-ghost" id="backup" style="margin-bottom:8px">${ic("download")} Descargar backup (todos los proyectos)</button>
+       <button class="btn btn-ghost" id="importBtn" style="margin-bottom:8px">${ic("upload")} Restaurar desde backup</button>
        <input type="file" id="importFile" accept="application/json,.json" style="display:none">
-       <button class="btn btn-ghost danger" id="reset">↺ Borrar TODO y empezar de cero</button>
+       <button class="btn btn-ghost danger" id="reset">${ic("rotate")} Borrar TODO y empezar de cero</button>
        <p style="font-size:11px;color:var(--muted);margin:8px 0 0">El backup guarda todos los proyectos en un archivo JSON.</p></div>`;
   $("projName").onchange=()=>{ const v=$("projName").value.trim(); if(v){ proy().n=v; syncProyecto(proy()); persist(); render(); } };
   const _pc=$("projClose");
@@ -927,7 +978,7 @@ function renderAjustes(){
   $("importBtn").onclick=()=>$("importFile").click();
   $("importFile").onchange=(e)=>{ const file=e.target.files[0]; if(!file) return; const r=new FileReader();
     r.onload=()=>{ try{ const d=JSON.parse(r.result); const cand=d.st||d; if(!(Array.isArray(cand.proyectos)||Array.isArray(cand.personas))) throw 0;
-        if(confirm("Esto reemplaza TODOS los datos actuales. ¿Seguir?")){ st=norm(cand); persist(); vista="gastos"; render(); alert("Backup restaurado ✓"); }
+        if(confirm("Esto reemplaza TODOS los datos actuales. ¿Seguir?")){ st=norm(cand); persist(); vista="gastos"; render(); alert("Backup restaurado."); }
       }catch(err){ alert("No pude leer el archivo. ¿Es un backup válido?"); } e.target.value=""; };
     r.readAsText(file); };
   $("reset").onclick=()=>{ if(confirm("¿Borrar TODO y empezar de cero?")){ st=SEED(); persist(); vista="gastos"; render(); } };
@@ -935,7 +986,7 @@ function renderAjustes(){
 
 /* ---------- modal ---------- */
 function chipsHTML(){ return proy().personas.map(p=>{ const on=draftPart.includes(p.id);
-  return `<span class="chip ${on?'on':''}" data-cid="${p.id}"><span class="box">${on?'✓':''}</span><span class="pdot" style="background:${pColor(p.id)}"></span>${esc(p.n)}</span>`; }).join(""); }
+  return `<span class="chip ${on?'on':''}" data-cid="${p.id}"><span class="box">${on?ic("check","ic-box"):''}</span><span class="pdot" style="background:${pColor(p.id)}"></span>${esc(p.n)}</span>`; }).join(""); }
 
 /* --- reparto: helpers de pesos --- */
 function pesoNum(id){ const v=parseMonto(draftPesos[id]); return isNaN(v)?0:v; }
@@ -980,12 +1031,12 @@ function refreshShare(){
     el.style.color="var(--muted)";
     el.textContent = monto>0 ? `${s} parte${s===1?"":"s"} · c/parte ${fmt(monto/s)}` : `${s} parte${s===1?"":"s"} en total.`; return; }
   if(draftModo==="exacto"){ const s=sumaPesos(), dif=monto-s;
-    if(Math.abs(dif)<=0.5){ el.style.color="var(--ok)"; el.textContent=`✓ Cuadra: ${fmt(s)} de ${fmt(monto)}`; }
+    if(Math.abs(dif)<=0.5){ el.style.color="var(--ok)"; el.innerHTML=`${ic("check","ic-t")} Cuadra: ${fmt(s)} de ${fmt(monto)}`; }
     else if(dif>0){ el.style.color="var(--red)"; el.textContent=`Asignado ${fmt(s)} de ${fmt(monto)} · faltan ${fmt(dif)}`; }
     else { el.style.color="var(--red)"; el.textContent=`Asignado ${fmt(s)} de ${fmt(monto)} · te pasaste ${fmt(-dif)}`; }
     return; }
   const sr=Math.round(sumaPesos()*10)/10, dif=Math.round((100-sr)*10)/10;   // porcentaje (comparo redondeado a 1 decimal)
-  if(Math.abs(dif)<0.05){ el.style.color="var(--ok)"; el.textContent="✓ Suma 100%"; }
+  if(Math.abs(dif)<0.05){ el.style.color="var(--ok)"; el.innerHTML=ic("check","ic-t")+" Suma 100%"; }
   else if(dif>0){ el.style.color="var(--red)"; el.textContent=`Suma ${sr}% · faltan ${dif}%`; }
   else { el.style.color="var(--red)"; el.textContent=`Suma ${sr}% · te pasaste ${-dif}%`; }
 }
@@ -996,14 +1047,14 @@ function fillSelects(){ $("q-cat").innerHTML=`<option value="" disabled selected
 function abrirModal(id){
   const P=proy();
   if(soloLectura()){ alert("Este grupo está liquidado (solo lectura). Reabrilo para cargar o editar gastos."); return; }
-  if(!P.personas.length){ alert("Primero agregá personas al grupo (tocá la ⚙️ de arriba)."); abrirGrupo(); return; }
+  if(!P.personas.length){ alert("Primero agregá personas al grupo (tocá el botón de ajustes, arriba a la derecha)."); abrirGrupo(); return; }
   fillSelects();
   if(id){ const g=P.gastos.find(x=>x.id===id); if(!g) return; editId=id; $("m-title").textContent="Editar gasto";
     $("q-monto").value=g.monto; $("q-desc").value=g.desc||""; $("q-cat").value=g.cat||"Otros"; $("q-fecha").value=g.fecha||hoy();
     draftPart=(g.part||[]).filter(pid=>P.personas.some(p=>p.id===pid)); draftPag=P.personas.some(p=>p.id===g.pagador)?g.pagador:P.personas[0].id;
     if(g.reparto && g.reparto.modo){ draftModo=g.reparto.modo; draftPesos={}; Object.keys(g.reparto.pesos||{}).forEach(pid=>draftPesos[pid]=String(g.reparto.pesos[pid])); }
     else { draftModo="igual"; draftPesos={}; }
-    $("q-add").textContent="✓ Guardar cambios";
+    $("q-add").innerHTML=ic("check")+"Guardar cambios";
   } else { editId=null; $("m-title").textContent="Nuevo gasto"; $("q-monto").value=""; $("q-desc").value=""; $("q-cat").selectedIndex=0; $("q-fecha").value=hoy();
     draftPart=P.personas.map(p=>p.id); draftModo="igual"; draftPesos={};
     const yoMatch=P.personas.find(p=>(p.n||"").trim().toLowerCase()===(YO&&YO.nombre||"").trim().toLowerCase());
@@ -1071,7 +1122,11 @@ function exportarFoto(){
 
   // ---- header ----
   rr(iX,y,58,58,15); ctx.fillStyle=COL.green; ctx.fill();
-  ctx.fillStyle="#0a0a0a"; ctx.font="30px system-ui,sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText("💸", iX+29, y+30); ctx.textAlign="left";
+  // Path2D acepta data de path SVG tal cual: mismo ícono wallet del set, trazado a mano en el canvas.
+  ctx.save(); ctx.translate(iX+15, y+15); ctx.scale(28/24, 28/24);
+  ctx.strokeStyle="#0a0a0a"; ctx.lineWidth=1.8; ctx.lineJoin="round"; ctx.lineCap="round";
+  IC.wallet.match(/ d="([^"]+)"/g).forEach(d=>ctx.stroke(new Path2D(d.slice(4,-1))));
+  ctx.restore();
   ctx.textBaseline="alphabetic"; ctx.fillStyle=COL.txt; ctx.font="700 30px system-ui,sans-serif"; ctx.fillText(P.n, iX+74, y+27);
   const fechaTxt=new Date().toLocaleDateString("es-AR",{day:"numeric",month:"long",year:"numeric"});
   ctx.font="500 13px system-ui,sans-serif"; const fw=ctx.measureText(fechaTxt).width;
@@ -1091,11 +1146,11 @@ function exportarFoto(){
 
   // ---- transferencias ----
   ctx.fillStyle=COL.txt; ctx.font="700 18px system-ui,sans-serif"; ctx.textBaseline="alphabetic";
-  ctx.fillText("💳  Quién le transfiere a quién", iX, y+22); y+=hTitle;
+  ctx.fillText("Quién le transfiere a quién", iX, y+22); y+=hTitle;
   if(!pagos.length){
     rr(iX,y,iW,hTransfEmpty-10,14); ctx.fillStyle=COL.card2; ctx.fill();
     ctx.fillStyle=COL.green; ctx.font="600 16px system-ui,sans-serif"; ctx.textBaseline="middle"; ctx.textAlign="center";
-    ctx.fillText("✓ Están todos a mano. Nadie debe nada.", iX+iW/2, y+(hTransfEmpty-10)/2); ctx.textAlign="left"; ctx.textBaseline="alphabetic";
+    ctx.fillText("Están todos a mano. Nadie debe nada.", iX+iW/2, y+(hTransfEmpty-10)/2); ctx.textAlign="left"; ctx.textBaseline="alphabetic";
     y+=hTransfEmpty;
   } else {
     pagos.forEach(p=>{
@@ -1117,7 +1172,7 @@ function exportarFoto(){
 
   // ---- en qué se gastó ----
   ctx.fillStyle=COL.txt; ctx.font="700 18px system-ui,sans-serif"; ctx.textBaseline="alphabetic";
-  ctx.fillText("🥧  En qué se gastó", iX, y+22); y+=hTitle;
+  ctx.fillText("En qué se gastó", iX, y+22); y+=hTitle;
   const cx=iX+donaD/2, cyD=y+donaD/2, rOut=donaD/2, rIn=donaD/2-26;
   if(ttotal>0){
     let ang=-Math.PI/2;
@@ -1148,7 +1203,7 @@ function exportarFoto(){
   ctx.textBaseline="middle";
   ctx.fillStyle=COL.muted; ctx.font="500 14px system-ui,sans-serif"; ctx.fillText("Total del grupo", iX, fy+38);
   ctx.fillStyle=COL.green; ctx.font="700 17px system-ui,sans-serif"; ctx.fillText(fmt(total), iX+ctx.measureText("Total del grupo").width+14, fy+38);
-  ctx.fillStyle=COL.muted; ctx.font="600 15px system-ui,sans-serif"; ctx.textAlign="right"; ctx.fillText("💸 Compartimos", iX+iW, fy+38); ctx.textAlign="left";
+  ctx.fillStyle=COL.muted; ctx.font="600 15px system-ui,sans-serif"; ctx.textAlign="right"; ctx.fillText("Compartimos", iX+iW, fy+38); ctx.textAlign="left";
   ctx.textBaseline="alphabetic";
 
   cv.toBlob(async (blob)=>{
