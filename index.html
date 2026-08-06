@@ -594,12 +594,15 @@ function computar(){
     const shares = repartoDe(g, part);
     part.forEach(id=> bal[id] -= (shares[id]||0));
   });
+  // balBruto = neto SOLO por gastos (sin pagos ya hechos): base ESTABLE del plan
+  const balBruto = {...bal};
   // pagos ya hechos: el que pagó reduce su deuda, el que cobró reduce su crédito
+  // (esto arma el bal NETO, que se usa en la vista Saldos)
   (P.liquidaciones||[]).forEach(l=>{
     if(bal.hasOwnProperty(l.de)) bal[l.de] += l.monto;
     if(bal.hasOwnProperty(l.a))  bal[l.a]  -= l.monto;
   });
-  return {bal,total};
+  return {bal, balBruto, total};
 }
 // Simplificación: combina todo en balance neto y minimiza la cantidad de transferencias.
 function liquidar(bal){
@@ -616,6 +619,30 @@ function liquidar(bal){
     d.v-=t; a.v-=t; if(d.v<=eps) i++; if(a.v<=eps) j++;
   }
   return pagos;
+}
+// Plan ESTABLE: el "quién le paga a quién" se calcula SIEMPRE sobre los gastos
+// (balBruto). Las liquidaciones ya hechas solo TACHAN la arista que les corresponde,
+// así marcar un pago NO reordena el resto del plan (bug de re-minimizar sobre el neto).
+function transferenciasPendientes(){
+  const {bal, balBruto}=computar();
+  const liqs = proy().liquidaciones||[];
+  const plan = liquidar(balBruto).map(e=>({...e}));   // plan completo determinista
+  let todosMatchean = true;
+  liqs.forEach(l=>{
+    let rest = l.monto;
+    for(const e of plan){
+      if(rest<=0.5) break;
+      if(e.de===l.de && e.a===l.a && e.monto>0.5){
+        const q=Math.min(e.monto, rest); e.monto-=q; rest-=q;
+      }
+    }
+    if(rest>0.5) todosMatchean=false;   // el pago no encaja: se cambiaron gastos después
+  });
+  if(todosMatchean)
+    return plan.filter(e=>e.monto>0.5).map(e=>({de:e.de, a:e.a, monto:Math.round(e.monto)}));
+  // Fallback robusto: si la base cambió, reneteo con los pagos aplicados. Puede
+  // reordenar, pero acá es legítimo porque cambió la realidad (se editaron gastos).
+  return liquidar(bal);
 }
 
 /* ---------- gráfico de torta ---------- */
@@ -636,7 +663,7 @@ function renderHero(){
   if(P.foto){ hero.style.backgroundImage=`url("${P.foto}")`; hero.classList.remove("no-foto"); }
   else { hero.style.backgroundImage=""; hero.classList.add("no-foto"); }
   $("heroName").textContent = P.n;
-  const {bal}=computar(); const pagos=liquidar(bal);
+  const pagos=transferenciasPendientes();
   const nP=P.personas.length;
   let estado = !P.gastos.length ? "sin gastos aún"
     : (pagos.length ? `${pagos.length} pago${pagos.length>1?"s":""} pendiente${pagos.length>1?"s":""}` : `${ic("check","ic-t")} todo saldado`);
@@ -792,7 +819,7 @@ function renderLiquidar(bal,total){
   const P=proy(); const ro=soloLectura();
   if(!P.personas.length){ $("content").innerHTML=`<div class="empty">Agregá personas al grupo <b>${esc(P.n)}</b> desde el ${ic("gear","ic-t")} de arriba.</div>`; return; }
   if(!P.gastos.length){ $("content").innerHTML=`<div class="empty">Todavía no hay gastos para liquidar en <b>${esc(P.n)}</b>.</div>`; return; }
-  const pagos=liquidar(bal);
+  const pagos=transferenciasPendientes();
   let flechas = !pagos.length
     ? `<div class="settled">${ic("checkCircle")}<span>Están todos a mano. Nadie le debe nada a nadie.</span></div>`
     : pagos.map(p=>`
@@ -1065,7 +1092,7 @@ function cerrarModal(){ $("modal").classList.remove("open"); editId=null; }
 
 /* ---------- export CSV ---------- */
 function exportar(){
-  const P=proy(); const {bal,total}=computar(); const pagos=liquidar(bal); const sep=";", L=[];
+  const P=proy(); const {bal,total}=computar(); const pagos=transferenciasPendientes(); const sep=";", L=[];
   L.push("PROYECTO"+sep+'"'+P.n+'"'); L.push("");
   L.push("GASTOS"); L.push(["Fecha","Descripción","Categoría","Pagó","Entre","Monto"].join(sep));
   P.gastos.forEach(g=>L.push([g.fecha||"", '"'+(g.desc||"").replace(/"/g,'""')+'"', g.cat||"", '"'+pName(g.pagador)+'"', (g.part||[]).length, g.monto].join(sep)));
@@ -1080,7 +1107,7 @@ function exportar(){
 
 /* ---------- export FOTO (canvas, sin librerías) — rediseño ---------- */
 function exportarFoto(){
-  const P=proy(); const {bal,total}=computar(); const pagos=liquidar(bal);
+  const P=proy(); const {bal,total}=computar(); const pagos=transferenciasPendientes();
   const m={}; P.gastos.forEach(g=>m[g.cat]=(m[g.cat]||0)+g.monto);
   const tdata=Object.entries(m).map(([k,v])=>({name:k,value:v,color:CCOL[k]||"#64748b"})).sort((a,b)=>b.value-a.value);
   const ttotal=tdata.reduce((s,x)=>s+x.value,0);
