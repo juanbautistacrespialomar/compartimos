@@ -790,6 +790,12 @@ function mesLargo(ym){ const x=new Date(ym+"-15T12:00:00"); return x.toLocaleDat
    Grupo local: nunca sale del dispositivo. Grupo compartido: cada cambio va a una cola
    que se sube al Worker (con reintento offline) y se pollea para traer lo de los demás. */
 const API = "https://compartimos-api.juanbautistacrespialomar.workers.dev";
+/* Versión del Worker: con v2 hay /rev, foto aparte, moneda, alias y edición en un solo paso.
+   Hasta saberlo se asume v1, que es lo que funciona con cualquiera de los dos. */
+let apiV = 1;
+async function detectarApi(){ try{ const r=await fetch(API+"/"); if(r.ok){ const d=await r.json(); apiV=+d.v||1; } }catch(e){} }
+const grupoNoExiste = {};          // grupos que el servidor dice que no existen (código mal tipeado)
+const KEY_MIG = "compartimos.migV2"; let migV2 = load(KEY_MIG, {});
 async function apiPost(path, body){
   const r = await fetch(API+path, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body||{})});
   if(!r.ok) throw new Error("El servidor respondió "+r.status);
@@ -805,7 +811,12 @@ async function vaciarCola(){
     while(cola.length){
       const op = cola[0];
       const r = await fetch(API+op.path, { method:op.method, headers:{"Content-Type":"application/json"}, body: op.method==="DELETE" ? undefined : JSON.stringify(op.body||{}) });
-      if(!r.ok) throw new Error(op.path+" -> "+r.status);
+      if(!r.ok){
+        // 4xx = el servidor rechazó ESE cambio para siempre (dato inválido, grupo inexistente):
+        // lo descarto para que no trabe la cola. 408/429 son "probá más tarde": reintento.
+        if(r.status>=400 && r.status<500 && r.status!==408 && r.status!==429){ cola.shift(); save(KEY_COLA, cola); actualizarSync(); continue; }
+        throw new Error(op.path+" -> "+r.status);
+      }
       cola.shift(); save(KEY_COLA, cola); actualizarSync();
     }
     despertarPoll();
@@ -816,8 +827,9 @@ function sync(P, method, path, body){ if(P && P.remoto) encolar({method, path, b
 function syncProyecto(P){ sync(P,"POST","/p/"+P.id,{nombre:P.n, emoji:P.emoji||null, foto:P.foto||null, cerrado:!!P.cerrado, moneda:P.moneda||"ARS"}); }
 function cuerpoGasto(g){ return {id:g.id, monto:g.monto, descripcion:g.desc, categoria:g.cat, fecha:g.fecha, pagador:g.pagador, participantes:g.part, reparto:g.reparto||null}; }
 function syncGasto(P,g){ sync(P,"POST","/p/"+P.id+"/gasto",cuerpoGasto(g)); }
-function syncPersona(P,p,reemplazar){ if(reemplazar) sync(P,"DELETE","/p/"+P.id+"/persona/"+p.id); sync(P,"POST","/p/"+P.id+"/persona",{id:p.id, nombre:p.n, alias:p.alias||""}); }
-window.addEventListener("online", ()=>{ vaciarCola(); actualizarSync(); despertarPoll(); });
+// Worker v2 actualiza la persona en un paso; con v1 hay que borrar y volver a crear.
+function syncPersona(P,p,reemplazar){ if(reemplazar && apiV<2) sync(P,"DELETE","/p/"+P.id+"/persona/"+p.id); sync(P,"POST","/p/"+P.id+"/persona",{id:p.id, nombre:p.n, alias:p.alias||""}); }
+window.addEventListener("online", ()=>{ detectarApi(); vaciarCola(); actualizarSync(); despertarPoll(); });
 window.addEventListener("offline", actualizarSync);
 
 function linkGrupo(P){ return location.origin+location.pathname+"?g="+P.id; }
@@ -830,7 +842,7 @@ async function compartirProyecto(){
     for(const g of P.gastos) await apiPost("/p/"+P.id+"/gasto", cuerpoGasto(g));
     for(const l of P.liquidaciones) await apiPost("/p/"+P.id+"/liquidacion", {id:l.id, de_persona:l.de, a_persona:l.a, monto:l.monto, fecha:l.fecha});
     for(const a of (P.actividad||[])) await apiPost("/p/"+P.id+"/actividad", {id:a.id, ts:a.ts, quien:a.quien, tipo:a.tipo, det:a.det, monto:a.monto});
-    P.remoto=P.id; P.creador=true; persist(); render();
+    P.remoto=P.id; P.creador=true; delete grupoNoExiste[P.id]; persist(); render();
     toast(`${ic("checkCircle","t")} Grupo compartido. Pasales el link o el código.`);
   }catch(e){
     toast("No se pudo compartir: "+esc(e.message)+". Probá de nuevo con conexión.",{tipo:"err"});
@@ -845,7 +857,7 @@ async function compartirProyecto(){
    GET /p/:id/rev (un número chiquito), primero pregunta eso y solo baja todo si cambió. */
 let ultimoRev = {}, pollDelay = 3000, pollTimer = null, revSoportado = null;
 async function revRemoto(id){
-  if(revSoportado===false) return undefined;
+  if(apiV<2 || revSoportado===false) return undefined;
   try{
     const r = await fetch(API+"/p/"+id+"/rev");
     if(!r.ok){ revSoportado=false; return undefined; }
@@ -863,15 +875,25 @@ async function fetchRemoto(id, forzar){
       if(rv!==undefined && rv===ultimoRev[id]) return false;
     }
     const r = await fetch(API+"/p/"+id);
+    const P = st.proyectos.find(p=>p.id===id);
+    if(r.status===404){
+      // No insisto: si sigo preguntando por un código que no existe, el Worker me frena por "fuerza bruta".
+      if(!grupoNoExiste[id]){ grupoNoExiste[id]=true; if(P && !P.gastos.length && !P.personas.length) toast("No encontramos ese grupo. Revisá el código o el link.",{tipo:"err",ms:5000}); }
+      return false;
+    }
     if(!r.ok) return false;
     const data = await r.json();
-    const P = st.proyectos.find(p=>p.id===id);
     if(!P || !data.proyecto) return false;
+    delete grupoNoExiste[id];
     if(ultimoRev[id] === data.proyecto.rev) return false;
     ultimoRev[id] = data.proyecto.rev;
     P.n = data.proyecto.nombre;
     if(data.proyecto.emoji) P.emoji = data.proyecto.emoji;
-    if("foto" in data.proyecto) P.foto = data.proyecto.foto || null;
+    if("foto" in data.proyecto) P.foto = data.proyecto.foto || null;          // Worker v1: la foto viene siempre
+    else if(data.proyecto.foto_v!=null && data.proyecto.foto_v!==P.fotoV){    // Worker v2: solo si cambió
+      try{ const rf=await fetch(API+"/p/"+id+"/foto"); if(rf.ok){ const f=await rf.json(); P.foto=f.foto||null; P.fotoV=f.foto_v; } }catch(e){}
+    }
+    const monedaAntes = P.moneda;
     if(data.proyecto.moneda && MONEDAS[data.proyecto.moneda]) P.moneda = data.proyecto.moneda;
     if("cerrado" in data.proyecto){
       P.cerrado = !!data.proyecto.cerrado;
@@ -882,6 +904,13 @@ async function fetchRemoto(id, forzar){
     const prev={}; P.personas.forEach(x=>prev[x.id]=x);
     P.personas = data.personas.map(x=>({id:x.id, n:x.nombre, alias:(x.alias!=null ? x.alias : (prev[x.id]&&prev[x.id].alias)||"")}));
     P.gastos = data.gastos.map(x=>({id:x.id, monto:x.monto, desc:x.descripcion, cat:x.categoria, fecha:x.fecha, pagador:x.pagador, part:x.participantes||[], reparto:x.reparto||null}));
+    // Una sola vez por grupo, al estrenar el Worker v2: subo la moneda y los alias que hasta
+    // ahora solo vivían en este celu (el servidor recién empieza a guardarlos).
+    if(apiV>=2 && !migV2[id]){
+      migV2[id]=true; save(KEY_MIG,migV2);
+      if(P.creador!==false && monedaAntes && monedaAntes!=="ARS" && P.moneda==="ARS"){ P.moneda=monedaAntes; syncProyecto(P); }
+      P.personas.forEach(x=>{ const pv=prev[x.id]; if(!x.alias && pv && pv.alias){ x.alias=pv.alias; syncPersona(P,x,false); } });
+    }
     P.liquidaciones = data.liquidaciones.map(x=>({id:x.id, de:x.de_persona, a:x.a_persona, monto:x.monto, fecha:x.fecha}));
     if(Array.isArray(data.actividad)){
       const mapa={}; (P.actividad||[]).forEach(a=>{ if(a.id) mapa[a.id]=a; });
@@ -895,7 +924,7 @@ async function fetchRemoto(id, forzar){
 function hayHojaAbierta(){ return [...document.querySelectorAll(".modal-bg")].some(m=>m.classList.contains("open")); }
 async function pollActivo(){
   const P = proy();
-  if(!P || !P.remoto || cola.length || document.hidden || hayHojaAbierta()) return false;
+  if(!P || !P.remoto || grupoNoExiste[P.id] || cola.length || document.hidden || hayHojaAbierta()) return false;
   return fetchRemoto(P.id);
 }
 function programarPoll(ms){
@@ -1761,8 +1790,8 @@ function guardarGasto(){
   if(editId){
     const g=P.gastos.find(x=>x.id===editId);
     if(g){ Object.assign(g,datos); logAct(P,"edit",g.desc||g.cat,gBase(g,P));
-      // El Worker todavía no tiene "actualizar": se borra y se vuelve a crear (dos pasos en la cola, en orden).
-      sync(P,"DELETE","/p/"+P.id+"/gasto/"+g.id); syncGasto(P,g); }
+      // Worker v2: un solo POST que actualiza. Worker v1: borrar + crear (dos pasos en la cola, en orden).
+      if(apiV<2) sync(P,"DELETE","/p/"+P.id+"/gasto/"+g.id); syncGasto(P,g); }
     toast(`${ic("check","t")} Gasto actualizado`);
   } else {
     const ng={id:newId(), ...datos}; P.gastos.unshift(ng);
@@ -1948,10 +1977,8 @@ function pedirNombre(){
 }
 if(!YO || !YO.nombre) pedirNombre();
 
-entrarPorLink();
+detectarApi().finally(()=>{ entrarPorLink(); render(); vaciarCola(); programarPoll(1500); });
 render();
-vaciarCola();
-programarPoll(1500);
 // Atajo del ícono de la app ("Cargar gasto"): ?nuevo=1
 if(new URLSearchParams(location.search).get("nuevo")==="1"){ history.replaceState(null,"",location.pathname); setTimeout(()=>abrirModal(null),300); }
 
