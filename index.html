@@ -167,8 +167,6 @@ input:disabled,select:disabled{opacity:.55}
 .lbl{display:block;font-size:var(--fs-sm);font-weight:600;color:var(--muted);margin:16px 2px 8px}
 .lbl-row{display:flex;align-items:center;justify-content:space-between;margin:16px 0 6px}
 .lbl-row .lbl{margin:0 2px}
-.chk{display:flex;align-items:center;gap:10px;margin:14px 2px 0;font-size:var(--fs-sm);color:var(--txt2);cursor:pointer}
-.chk input{width:20px;height:20px;flex:none;accent-color:var(--accent);margin:0}
 .hint{font-size:var(--fs-xs);color:var(--muted);margin:8px 2px 0;line-height:1.45}
 
 /* Avatares (personas = círculo con inicial) y categorías (cuadrado con ícono): se distinguen por FORMA, no solo por color */
@@ -603,9 +601,9 @@ body.inicio #toasts{bottom:calc(env(safe-area-inset-bottom) + 28px)}
     <button class="btn btn-primary btn-block" id="ng-ok" style="margin-top:16px"><span data-ic="plus"></span>Crear grupo</button>
     </div>
     <div id="ng-unir">
-    <label class="lbl" for="ng-link" style="margin-top:6px">Pegá el link o escribí el código que te pasaron</label>
-    <input type="text" id="ng-link" placeholder="Link o código (ej: K7XM2Q)" enterkeyhint="go" autocomplete="off" autocapitalize="characters">
-    <label class="chk"><input type="checkbox" id="ng-mio"><span>Este grupo lo creé yo (lo estoy recuperando)</span></label>
+    <label class="lbl" for="ng-link" style="margin-top:6px">Pegá el link o el código que te pasaron</label>
+    <input type="text" id="ng-link" placeholder="Link o código (ej: K7XM2Q)" enterkeyhint="go" autocomplete="off" autocapitalize="none" spellcheck="false">
+    <p class="hint">Podés pegar varios códigos juntos, separados por un espacio, y se suman todos de una.</p>
     <button class="btn btn-primary btn-block" id="ng-join" style="margin-top:16px"><span data-ic="link"></span>Unirme al grupo</button>
     </div>
   </div>
@@ -784,14 +782,23 @@ function norm(s){
 }
 /* Arranque a prueba de sustos: si lo guardado no se puede leer, NO lo piso con una lista vacía.
    Lo copio aparte ("rescate") para poder recuperarlo después. */
-let st;
+let st, arranqueDudoso=false, autoRecuperados=0;
 (function(){
   let crudo=null; try{ crudo=localStorage.getItem(KEY); }catch(e){}
   let datos=null, roto=false;
   if(crudo){ try{ datos=JSON.parse(crudo); }catch(e){ roto=true; } }
   if(roto){ try{ localStorage.setItem(KEY_RESCATE, crudo); }catch(e){} }
   st = norm(datos);
-  if(!roto) save(KEY,st);
+  // Lista vacía pero el respaldo tiene grupos que nunca borraste: los traigo de vuelta solo.
+  if(!st.proyectos.length){
+    const r=load(KEY_RESP,{})||{}, gs=Object.values(r).map(x=>x&&x.g).filter(g=>g&&g.id&&Array.isArray(g.gastos));
+    if(gs.length){ st=norm({v:3, activo:null, proyectos:gs}); autoRecuperados=gs.length; }
+  }
+  // Leí "nada" pero la app ya se usó en este celu (está tu nombre): puede ser una lectura fallida
+  // del celu al abrir. No piso nada hasta volver a leer un par de veces (ver "ARRANQUE").
+  let usado=false; try{ usado=!!localStorage.getItem(KEY_YO); }catch(e){}
+  if(!crudo && usado && !autoRecuperados) arranqueDudoso=true;
+  if(!roto && !arranqueDudoso) save(KEY,st);
 })();
 let YO = load(KEY_YO, null);
 let yoMap = load(KEY_YOMAP, {});      // { idGrupo: idPersona | "-" }  — solo local, no se sincroniza
@@ -811,7 +818,7 @@ function respaldar(){
   }catch(e){} }, 800);
 }
 function olvidarRespaldo(id){ try{ const r=load(KEY_RESP,{})||{}; delete r[id]; localStorage.setItem(KEY_RESP, JSON.stringify(r)); }catch(e){} }
-function persist(){ save(KEY,st); respaldar(); }
+function persist(){ if(arranqueDudoso) return; save(KEY,st); respaldar(); }
 // Grupo abierto en pantalla (null en el Inicio).
 function proy(){ return st.proyectos.find(p=>p.id===st.activo) || null; }
 // Un grupo liquidado se puede mirar, pero no tocar hasta reabrirlo.
@@ -1684,7 +1691,7 @@ function abrirNuevo(modo){
   $("ng-crear").style.display = modo==="crear"?"":"none";
   $("ng-unir").style.display  = modo==="unir"?"":"none";
   $("ng-title").textContent = modo==="crear"?"Nuevo grupo":"Unirme a un grupo";
-  $("ng-nombre").value=""; $("ng-link").value=""; $("ng-mio").checked=false;
+  $("ng-nombre").value=""; $("ng-link").value="";
   $("newGroupModal").classList.add("open");
   setTimeout(()=>$(modo==="crear"?"ng-nombre":"ng-link").focus(),150);
 }
@@ -1705,26 +1712,9 @@ function abrirPerfil(){
       <input type="file" id="importFile" accept="application/json,.json" style="display:none">
     </div>
     <p class="hint">Los grupos que no compartiste viven solo en este celu: bajate un backup cada tanto.</p>
-    <span class="lbl">Diagnóstico y recuperación</span>
-    <div id="pf-diag" class="hint" style="margin:0 2px 10px">Revisando…</div>
-    <div class="btn-list">
-      <button class="btn btn-sec" id="pf-buscar">${ic("search","sm")}Buscar grupos perdidos</button>
-      <button class="btn btn-sec" id="pf-enviar">${ic("share","sm")}Enviar diagnóstico</button>
-    </div>
-    <div id="pf-res"></div>
     <span class="lbl">Zona de cuidado</span>
     <button class="btn btn-danger btn-block" id="reset">${ic("trash","sm")}Borrar todo de este celu</button>
     <div class="brand"><img src="logo.svg" alt="">Compartimos v5</div>`, ()=>{
-    infoDiagnostico().then(t=>{ const d=$("pf-diag"); if(d) d.innerHTML=t; });
-    $("pf-buscar").onclick=()=>{
-      const {hallados}=escanearPerdidos(), res=$("pf-res");
-      if(!hallados.length){ res.innerHTML=`<p class="hint" style="margin:10px 2px 0">No encontré grupos guardados aparte en este celu. Si eran compartidos, se recuperan desde el servidor con su código («Unirme»). Si no, tocá «Enviar diagnóstico» y mandámelo.</p>`; return; }
-      res.innerHTML=`<p class="hint" style="margin:10px 2px 8px">Encontré ${hallados.length} grupo${hallados.length>1?"s":""} que no están en tu lista:</p>`+
-        hallados.map(x=>`<div class="listrow"><span>${esc(x.g.n)} <small class="mut">· ${x.g.gastos.length} gastos · ${x.g.personas.length} personas</small></span></div>`).join("")+
-        `<button class="btn btn-primary btn-block" id="pf-recup" style="margin-top:6px">${ic("rotate","sm")}Recuperar ${hallados.length===1?"este grupo":"estos "+hallados.length+" grupos"}</button>`;
-      $("pf-recup").onclick=()=>{ hallados.forEach(x=>{ if(!st.proyectos.some(p=>p.id===x.g.id)) st.proyectos.push(x.g); }); st=norm(st); persist(); cerrarSheet(); irInicio(); toast(`${ic("checkCircle","t")} Recuperé ${hallados.length} grupo${hallados.length>1?"s":""}`); };
-    };
-    $("pf-enviar").onclick=enviarDiagnostico;
     $("pf-nombre").onchange=()=>{ const v=$("pf-nombre").value.trim(); if(!v) return; YO={id:(YO&&YO.id)||newId(), nombre:v}; save(KEY_YO,YO); render(); toast(`${ic("check","t")} Nombre guardado`); };
     $("pf-tema").querySelectorAll("button").forEach(b=>b.onclick=()=>{ aplicarTema(b.dataset.t); $("pf-tema").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); });
     $("backup").onclick=()=>{ const data={app:"Compartimos",fecha:new Date().toISOString(),st}; const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"})); a.download="backup_compartimos_"+hoy()+".json"; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); };
@@ -1736,45 +1726,6 @@ function abrirPerfil(){
       r.readAsText(file); };
     $("reset").onclick=async()=>{ if(await confirmar({t:"¿Borrar todo?", txt:"Se borran todos los grupos de este celu. Los compartidos los siguen teniendo los demás. No se puede deshacer.", ok:"Borrar todo", peligro:true})){ st=SEED(); try{ localStorage.removeItem(KEY_RESP); }catch(e){} persist(); cerrarSheet(); irInicio(); } };
   });
-}
-
-/* ============ Diagnóstico y recuperación ============ */
-const modoApp = () => (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone ? "app instalada" : "navegador";
-async function infoDiagnostico(){
-  let usado="?", persiste="?";
-  try{ if(navigator.storage && navigator.storage.estimate){ const e=await navigator.storage.estimate(); usado=Math.round((e.usage||0)/1024)+" KB"; } }catch(e){}
-  try{ if(navigator.storage && navigator.storage.persisted) persiste = (await navigator.storage.persisted()) ? "protegidos" : "sin protección extra"; }catch(e){}
-  let bytes=0; try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); bytes+=(localStorage.getItem(k)||"").length; } }catch(e){}
-  return `Abierta como <b>${modoApp()}</b> · ${st.proyectos.length} grupo${st.proyectos.length===1?"":"s"} guardado${st.proyectos.length===1?"":"s"} · datos de la app: ${Math.round(bytes/1024)} KB · almacenamiento total: ${usado} · datos ${persiste}.`;
-}
-// Recorre TODO lo que la app tiene guardado en el celu buscando grupos que no estén en la lista.
-function escanearPerdidos(){
-  const actuales=new Set(st.proyectos.map(p=>p.id)), hallados={}, claves=[];
-  const agregar=(g,origen)=>{ if(!g || !g.id || !Array.isArray(g.gastos) || actuales.has(g.id)) return;
-    const prev=hallados[g.id]; if(!prev || g.gastos.length>prev.g.gastos.length) hallados[g.id]={g, origen}; };
-  try{
-    for(let i=0;i<localStorage.length;i++){
-      const k=localStorage.key(i), raw=localStorage.getItem(k)||"";
-      claves.push({clave:k, kb:Math.round(raw.length/102.4)/10});
-      let d; try{ d=JSON.parse(raw); }catch(e){ continue; }
-      if(!d || typeof d!=="object") continue;
-      if(k===KEY_RESP) Object.values(d).forEach(x=>agregar(x&&x.g, "respaldo automático"));
-      const cand=d.st||d;
-      if(Array.isArray(cand.proyectos)) cand.proyectos.forEach(g=>agregar(g, k));
-    }
-  }catch(e){}
-  return {hallados:Object.values(hallados), claves};
-}
-async function enviarDiagnostico(){
-  const {hallados, claves}=escanearPerdidos();
-  const datos={}; try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); datos[k]=localStorage.getItem(k); } }catch(e){}
-  const info={app:"Compartimos v5", fecha:new Date().toISOString(), modo:modoApp(), navegador:navigator.userAgent,
-    grupos:st.proyectos.map(p=>({id:p.id, n:p.n, personas:p.personas.length, gastos:p.gastos.length, cerrado:!!p.cerrado, compartido:!!p.remoto})),
-    perdidosEncontrados:hallados.map(x=>({id:x.g.id, n:x.g.n, origen:x.origen})), claves, datos};
-  const blob=new Blob([JSON.stringify(info,null,2)],{type:"application/json"});
-  const file=new File([blob],"diagnostico_compartimos_"+hoy()+".json",{type:"application/json"});
-  try{ if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:"Diagnóstico Compartimos"}); return; } }catch(e){ if(e&&e.name==="AbortError") return; }
-  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=file.name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 
 /* ============ Pestaña GRUPO: todo lo de este grupo en un lugar ============ */
@@ -2146,14 +2097,28 @@ function extraerGid(txt){
   return txt;
 }
 function unirseAGrupo(){
-  const g=extraerGid($("ng-link").value);
-  if(!g){ toast("Pegá el link o el código que te pasaron.",{tipo:"err"}); return; }
-  let P=st.proyectos.find(p=>p.id===g);
-  const mio=$("ng-mio").checked;   // si lo creaste vos, recuperás también el permiso de cerrarlo
-  if(!P){ P=grupoVacio("Grupo compartido"); P.id=g; P.remoto=g; P.creador=mio; st.proyectos.push(P); }
-  else { P.remoto=g; if(mio) P.creador=true; }
-  delete grupoNoExiste[g]; persist();
+  // Acepta uno o VARIOS códigos/links juntos (separados por espacio, coma o renglón).
+  const codigos=[...new Set($("ng-link").value.split(/[\s,;]+/).map(extraerGid).filter(Boolean))];
+  if(!codigos.length){ toast("Pegá el link o el código que te pasaron.",{tipo:"err"}); return; }
+  codigos.forEach(g=>{
+    let P=st.proyectos.find(p=>p.id===g);
+    if(!P){ P=grupoVacio("Grupo compartido"); P.id=g; P.remoto=g; P.creador=false; st.proyectos.push(P); }
+    else { P.remoto=g; }
+    delete grupoNoExiste[g];
+  });
+  persist();
   $("newGroupModal").classList.remove("open");
+  if(codigos.length>1){
+    render();
+    Promise.all(codigos.map(g=>fetchRemoto(g,true))).then(res=>{
+      codigos.forEach(g=>{ const P=st.proyectos.find(x=>x.id===g); if(P && grupoNoExiste[g] && !P.gastos.length && !P.personas.length){ st.proyectos=st.proyectos.filter(x=>x.id!==g); olvidarRespaldo(g); } });
+      persist(); render();
+      const ok=res.filter(Boolean).length;
+      toast(`${ic("checkCircle","t")} Recuperé ${ok} de ${codigos.length} grupos`+(ok<codigos.length?" (algún código no existe)":""),{ms:5000});
+    });
+    return;
+  }
+  const g=codigos[0], P=st.proyectos.find(x=>x.id===g);
   abrirGrupoId(g);
   fetchRemoto(g,true).then(ok=>{
     if(ok) return toast(`${ic("checkCircle","t")} Te uniste a «${esc(P.n)}»`);
@@ -2178,6 +2143,18 @@ function pedirNombre(){
 if(!YO || !YO.nombre) pedirNombre();
 
 history.replaceState({p:"inicio"},"");
+if(autoRecuperados) setTimeout(()=>toast(`${ic("checkCircle","t")} Recuperé ${autoRecuperados} grupo${autoRecuperados>1?"s":""} del respaldo automático`,{ms:6000}),600);
+// Si al abrir la lectura vino vacía "de golpe", vuelvo a leer antes de permitir guardar nada.
+if(arranqueDudoso){
+  let intento=0;
+  const releer=()=>{
+    let c=null; try{ c=localStorage.getItem(KEY); }catch(e){}
+    if(c){ try{ st=norm(JSON.parse(c)); arranqueDudoso=false; render(); return; }catch(e){} }
+    if(++intento<4) return setTimeout(releer,700);
+    arranqueDudoso=false; persist();      // de verdad no había nada: sigo normal
+  };
+  setTimeout(releer,500);
+}
 // Le pido al celu que NO borre los datos de la app aunque necesite espacio.
 try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){}
 respaldar();
