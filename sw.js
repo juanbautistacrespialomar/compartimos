@@ -6,12 +6,12 @@
 
    ┌───────────────────────────────────────────────────────────────┐
    │  PARA PUBLICAR UNA ACTUALIZACIÓN A TODOS:                       │
-   │  cambiá el número de VERSION de abajo (v28 -> v29 -> ...)       │
+   │  cambiá el número de VERSION de abajo (v29 -> v30 -> ...)       │
    │  y subí este archivo + el index.html a GitHub.                 │
    │  A cada persona le va a aparecer el cartel "Hay versión nueva". │
    └───────────────────────────────────────────────────────────────┘ */
 
-const VERSION = "v28";
+const VERSION = "v29";
 const CACHE = "compartimos-" + VERSION;
 const FONTS = "compartimos-fonts";        // no lleva versión: las fuentes no cambian
 const ASSETS = [

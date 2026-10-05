@@ -82,6 +82,9 @@ html{touch-action:manipulation;overscroll-behavior:none}
 html,body{margin:0;background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:var(--fs-base);line-height:1.45;touch-action:manipulation;overscroll-behavior:none;overflow-x:hidden;width:100%;max-width:100%;-webkit-font-smoothing:antialiased}
 /* El body es una caja fija de 100dvh; el scroll vive en #scroller (así la nav flota sin moverse). */
 body{height:100dvh;overflow:hidden;display:flex;flex-direction:column;position:relative}
+#sbar{position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:250;pointer-events:none}
+/* Dentro de un grupo la franja toma el violeta del encabezado, así parece parte de él. */
+body:not(.inicio) #sbar{background:#3b33b8}
 #scroller{flex:1 1 auto;width:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .wrap{width:100%;max-width:600px;margin:0 auto;padding:14px 16px calc(168px + env(safe-area-inset-bottom))}
 .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
@@ -510,6 +513,10 @@ body.inicio #toasts{bottom:calc(env(safe-area-inset-bottom) + 28px)}
 </style>
 </head>
 <body>
+<!-- Franja sólida debajo de la barra de estado del iPhone (hora, batería).
+     iOS 26 dibuja ahí un efecto "vidrio" que desenfoca lo que pasa por debajo; con esta franja
+     lo que queda debajo es un color liso, así que no se ve nada borroneado. -->
+<div id="sbar" aria-hidden="true"></div>
 <div id="scroller">
 <header class="hero no-foto" id="hero">
   <div class="hero-shade"></div>
