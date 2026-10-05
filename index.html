@@ -103,16 +103,16 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{ou
 .i.lg{width:22px;height:22px}
 
 /* ============================ HERO ============================ */
-.hero{position:relative;width:100%;min-height:212px;background-size:cover;background-position:center;background-color:var(--card2);display:flex;flex-direction:column;justify-content:space-between;color:#fff;transition:min-height .25s ease}
+.hero{position:relative;width:100%;min-height:212px;background-size:cover;background-position:center;background-color:var(--card2);display:flex;flex-direction:column;justify-content:space-between;color:#fff;isolation:isolate}
 .hero.compact{min-height:0}
 .hero.no-foto{background-image:linear-gradient(135deg,#4f46e5 0%,#6d5df0 45%,#2b3a8f 100%)!important}
 .hero-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(2,6,23,.32) 0%,rgba(2,6,23,.08) 40%,rgba(10,13,31,.9) 100%);pointer-events:none}
 .hero-top{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;padding:calc(env(safe-area-inset-top) + 12px) 16px 0}
-.hero-btn{width:42px;height:42px;border-radius:50%;border:none;background:rgba(15,23,42,.45);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.hero-btn:active{background:rgba(15,23,42,.65)}
+.hero-btn{width:42px;height:42px;border-radius:50%;border:none;background:rgba(10,13,31,.62);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.hero-btn:active{background:rgba(10,13,31,.8)}
 .hero-btn:disabled{opacity:.4}
 .hero-foot{position:relative;z-index:1;padding:14px 18px 16px}
-.hero-title{margin:0;display:inline-flex;align-items:center;max-width:100%;background:rgba(2,6,23,.5);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.22);border-radius:var(--r-md);padding:6px 14px;font-size:inherit;font-weight:inherit}
+.hero-title{margin:0;display:inline-flex;align-items:center;max-width:100%;background:rgba(10,13,31,.66);border:1px solid rgba(255,255,255,.22);border-radius:var(--r-md);padding:6px 14px;font-size:inherit;font-weight:inherit}
 .hero-title #heroName{font-size:var(--fs-2xl);font-weight:800;letter-spacing:-.4px;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hero.compact .hero-title #heroName{font-size:var(--fs-xl)}
 .hero-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
@@ -120,8 +120,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{ou
 .hero-act.show{display:inline-flex}
 #heroReabrir{background:var(--warn);color:#1a1205}
 .hero-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}
-.hero-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(2,6,23,.5);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);font-size:var(--fs-sm);font-weight:600;padding:6px 12px;border-radius:var(--r-pill)}
-.sync-chip{display:none;align-items:center;gap:6px;background:rgba(2,6,23,.5);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);font-size:var(--fs-xs);font-weight:600;padding:6px 11px;border-radius:var(--r-pill)}
+.hero-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(10,13,31,.66);font-size:var(--fs-sm);font-weight:600;padding:6px 12px;border-radius:var(--r-pill)}
+.sync-chip{display:none;align-items:center;gap:6px;background:rgba(10,13,31,.66);font-size:var(--fs-xs);font-weight:600;padding:6px 11px;border-radius:var(--r-pill)}
 .sync-chip.show{display:inline-flex}
 .sync-chip .sdot{width:8px;height:8px;border-radius:50%;background:#34d399;flex:none}
 .sync-chip.saving .sdot{background:#fbbf24;animation:pulse 1s ease-in-out infinite}
@@ -225,7 +225,19 @@ body.inicio #toasts{bottom:calc(env(safe-area-inset-bottom) + 28px)}
 .gcards{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
 .gcard{display:flex;align-items:center;gap:13px;width:100%;min-width:0;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:10px 14px 10px 10px;cursor:pointer;font:inherit;color:var(--txt);box-shadow:var(--sh-1);transition:transform .1s}
 .gcard:active{transform:scale(.985)}
-.gcard.cerrado{box-shadow:none;background:transparent;opacity:.85}
+.gcard.cerrado{box-shadow:none}
+.gcard.cerrado .gthumb{filter:grayscale(.7);opacity:.75}
+.gcard.cerrado .gc-main b{color:var(--txt2)}
+/* Estado sutil del grupo */
+.st{display:inline-flex;align-items:center;gap:5px;font-weight:700;margin-right:6px}
+.st::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.st-a{color:var(--pos)} .st-c{color:var(--faint)}
+/* Deslizar para borrar */
+.swipe{position:relative;border-radius:var(--r-lg);overflow:hidden;min-width:0}
+.sw-del{position:absolute;top:0;right:0;bottom:0;width:120px;padding-left:28px;border:none;background:#dc2626;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font:inherit;font-size:var(--fs-xs);font-weight:800;cursor:pointer;opacity:0;pointer-events:none}
+.swipe.act .sw-del{opacity:1}
+.swipe.open .sw-del{pointer-events:auto}
+.swipe .gcard{position:relative;z-index:1;touch-action:pan-y;transition:transform .22s cubic-bezier(.2,.8,.2,1);-webkit-user-select:none;user-select:none}
 .gthumb{width:58px;height:58px;border-radius:15px;flex:none;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:24px;color:#fff;position:relative;text-shadow:0 1px 4px rgba(0,0,0,.25)}
 .gthumb .rem{position:absolute;right:-5px;bottom:-5px;width:22px;height:22px;border-radius:50%;background:var(--card);display:flex;align-items:center;justify-content:center;color:var(--accent-ink);border:1px solid var(--line);text-shadow:none}
 .gthumb .rem .i{width:12px;height:12px}
@@ -237,7 +249,6 @@ body.inicio #toasts{bottom:calc(env(safe-area-inset-bottom) + 28px)}
 .gc-side small{font-size:var(--fs-xs);color:var(--muted)}
 .home-acts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0 26px}
 .home-acts .btn{border-radius:var(--r-md)}
-.arch-t{display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:none;padding:6px 2px 10px;cursor:pointer;font:inherit;font-size:var(--fs-md);font-weight:700;color:var(--muted)}
 .hero-btn .i{width:20px;height:20px}
 .cnt{font-size:var(--fs-xs);font-weight:700;background:var(--card2);color:var(--muted);border-radius:var(--r-pill);padding:2px 8px}
 /* --- Tarjeta personal --- */
@@ -931,6 +942,7 @@ function escribiendo(){ const a=document.activeElement; return !!a && /^(INPUT|T
 let turno=0;
 async function pollActivo(){
   if(cola.length || document.hidden || hayHojaAbierta() || escribiendo()) return false;
+  if(typeof swAbierto!=="undefined" && swAbierto) return false;   // tenés un tacho abierto: no te repinto la lista
   if(pantalla==="grupo"){
     const P = proy();
     if(!P || !P.remoto || grupoNoExiste[P.id]) return false;
@@ -1114,7 +1126,7 @@ function tiempoRel(ts){
 /* ============================ VISTAS ============================
    Dos pantallas:  INICIO (tus grupos, tu perfil)  y  GRUPO (Gastos · Resumen · Cuentas · Grupo).
    Entrar a un grupo agrega un paso al historial: el "atrás" del celu te devuelve al Inicio. */
-let pantalla="inicio", vista="gastos", vistaPrev="gastos", actExpandida=false, modoDia="dia", selDia=null, verLiquidados=false;
+let pantalla="inicio", vista="gastos", vistaPrev="gastos", actExpandida=false, modoDia="dia", selDia=null;
 let F={q:"", cat:"", per:"", fecha:""};   // filtros de la lista de gastos
 const hayFiltro = () => !!(F.q||F.cat||F.per||F.fecha);
 function limpiarFiltros(){ F={q:"",cat:"",per:"",fecha:""}; }
@@ -1554,46 +1566,86 @@ function ultimaActividad(P){ const a=(P.actividad||[])[0]; if(a) return a.ts; co
 function cardGrupo(P){
   const c=computar(P), yo=miPersonaId(P), n=P.personas.length, ng=P.gastos.length;
   let side="";
-  if(P.cerrado) side=`<b class="mut">${ic("archive","sm")}</b>`;
-  else if(yo && ng){ const s=c.bal[yo]||0;
+  if(!P.cerrado && yo && ng){ const s=c.bal[yo]||0;
     side = s>EPS ? `<b class="num pos">+${fmt(s)}</b><small>te deben</small>` : s<-EPS ? `<b class="num neg">−${fmt(-s)}</b><small>debés</small>` : `<b class="mut">${ic("check","sm")}</b><small>a mano</small>`; }
-  else if(ng) side=`<b class="num">${fmt(c.total)}</b><small>total</small>`;
-  const sub = !n ? "Sin personas todavía" : `${n} persona${n===1?"":"s"} · ${ng?`${ng} gasto${ng===1?"":"s"}`:"sin gastos"}`;
-  return `<button class="gcard ${P.cerrado?"cerrado":""}" data-open="${esc(P.id)}">${thumbGrupo(P)}<span class="gc-main"><b>${esc(P.n)}</b><small>${sub}</small></span><span class="gc-side">${side}</span></button>`;
+  else if(ng) side=`<b class="num ${P.cerrado?"mut":""}">${fmt(c.total)}</b><small>total</small>`;
+  // Estado sutil: un puntito de color + la palabra (verde = abierto, gris = liquidado).
+  const estado = P.cerrado ? `<span class="st st-c">Liquidado</span>` : `<span class="st st-a">Abierto</span>`;
+  const sub = !n ? "sin personas" : `${n} persona${n===1?"":"s"} · ${ng?`${ng} gasto${ng===1?"":"s"}`:"sin gastos"}`;
+  return `<div class="swipe" data-sw="${esc(P.id)}">
+    <button class="sw-del" data-del="${esc(P.id)}" aria-label="Borrar ${esc(P.n)}" tabindex="-1">${ic("trash")}<span>Borrar</span></button>
+    <button class="gcard ${P.cerrado?"cerrado":""}" data-open="${esc(P.id)}">${thumbGrupo(P)}<span class="gc-main"><b>${esc(P.n)}</b><small>${estado}${sub}</small></span><span class="gc-side">${side}</span></button></div>`;
+}
+/* --- Deslizar a la izquierda para borrar ---
+   Deslizás la tarjeta → aparece el tacho rojo → lo tocás → te pregunta → borra (con "Deshacer").
+   El scroll vertical sigue andando normal: solo tomo el gesto si es claramente horizontal. */
+const SW_W=92; let swAbierto=null;
+function cerrarSwipe(w){ if(!w) return; const c=w.querySelector(".gcard"); c.style.transform=""; w.classList.remove("open"); setTimeout(()=>{ if(!w.classList.contains("open")) w.classList.remove("act"); },230); if(swAbierto===w) swAbierto=null; }
+function bindSwipe(root){
+  root.querySelectorAll(".swipe").forEach(w=>{
+    const card=w.querySelector(".gcard"); let x0=0,y0=0,dx=0,modo=null,base=0,pid=null;
+    card.addEventListener("pointerdown",e=>{ if(e.pointerType==="mouse" && e.button!==0) return; x0=e.clientX; y0=e.clientY; dx=0; modo=null; base=w.classList.contains("open")?-SW_W:0; pid=e.pointerId; });
+    card.addEventListener("pointermove",e=>{
+      if(pid!==e.pointerId) return;
+      const mx=e.clientX-x0, my=e.clientY-y0;
+      if(!modo){ if(Math.abs(mx)<8 && Math.abs(my)<8) return;
+        modo = Math.abs(mx)>Math.abs(my) ? "h" : "v";
+        if(modo==="h"){ try{ card.setPointerCapture(pid); }catch(_){} if(swAbierto && swAbierto!==w) cerrarSwipe(swAbierto); w.classList.add("act"); card.style.transition="none"; } }
+      if(modo!=="h") return;
+      dx=Math.min(0, Math.max(-SW_W*1.35, base+mx));
+      card.style.transform=`translateX(${dx}px)`;
+    });
+    const fin=e=>{ if(pid!==e.pointerId) return; pid=null; card.style.transition="";
+      if(modo==="h"){ w.dataset.swiped="1"; setTimeout(()=>delete w.dataset.swiped,350);
+        if(dx < -SW_W/2){ card.style.transform=`translateX(${-SW_W}px)`; w.classList.add("open"); swAbierto=w; } else cerrarSwipe(w); } };
+    card.addEventListener("pointerup",fin); card.addEventListener("pointercancel",fin);
+    card.addEventListener("click",e=>{
+      if(w.dataset.swiped) return;                                   // fue un deslizamiento, no un toque
+      if(w.classList.contains("open")){ cerrarSwipe(w); return; }   // tocar la tarjeta abierta la vuelve a su lugar
+      if(swAbierto){ cerrarSwipe(swAbierto); return; }
+      abrirGrupoId(card.dataset.open);
+    });
+  });
+  root.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>borrarGrupoDesdeInicio(b.dataset.del));
+}
+async function borrarGrupoDesdeInicio(id){
+  const i=st.proyectos.findIndex(p=>p.id===id), P=st.proyectos[i]; if(!P) return;
+  const ok=await confirmar({t:`¿Borrar «${P.n}»?`, txt:`Se borra de este celu con todos sus gastos.${P.remoto?" Los demás integrantes lo siguen teniendo.":""}`, ok:"Borrar", peligro:true});
+  if(!ok){ if(swAbierto) cerrarSwipe(swAbierto); return; }
+  swAbierto=null; st.proyectos.splice(i,1); persist(); renderInicio();
+  toast(`Borraste «${esc(P.n)}»`,{undo:()=>{ if(st.proyectos.some(p=>p.id===P.id)) return; st.proyectos.splice(Math.min(i,st.proyectos.length),0,P); persist(); if(pantalla==="inicio") renderInicio(); }});
 }
 function renderInicio(){
   const nombre=((YO&&YO.nombre)||"").trim();
-  const activos=st.proyectos.filter(p=>!p.cerrado).sort((a,b)=>ultimaActividad(b)-ultimaActividad(a));
-  const cerrados=st.proyectos.filter(p=>p.cerrado);
+  const porActividad=(a,b)=>ultimaActividad(b)-ultimaActividad(a);
+  // TODOS los grupos en una sola lista: primero los abiertos, después los liquidados.
+  const todos=[...st.proyectos.filter(p=>!p.cerrado).sort(porActividad), ...st.proyectos.filter(p=>p.cerrado).sort(porActividad)];
   let teDeben=0, debes=0, gD=0, gB=0;
-  activos.forEach(P=>{ const yo=miPersonaId(P); if(!yo||!P.gastos.length) return; const s=computar(P).bal[yo]||0; if(s>EPS){teDeben+=s;gD++;} else if(s<-EPS){debes-=s;gB++;} });
+  todos.filter(p=>!p.cerrado).forEach(P=>{ const yo=miPersonaId(P); if(!yo||!P.gastos.length) return; const s=computar(P).bal[yo]||0; if(s>EPS){teDeben+=s;gD++;} else if(s<-EPS){debes-=s;gB++;} });
   const yoAv = `<span class="av" style="--c:#6366f1;--ci:#fff">${esc(inicial(nombre||"?"))}</span>`;
   let h=`<div class="home-head"><div class="brandrow"><img src="logo.svg" alt="">Compartimos</div>
       <button class="me-btn" id="perfilBtn" aria-label="Tu perfil y ajustes" title="Tu perfil y ajustes">${yoAv}</button></div>
     <h1 class="hola">${nombre?`Hola, ${esc(nombre)}`:"Hola"}</h1>`;
-  if(!activos.length){
+  const acciones=`<div class="home-acts"><button class="btn btn-sec" id="hJoin">${ic("link","sm")}Unirme</button><button class="btn btn-primary" id="hNew">${ic("plus","sm")}Nuevo grupo</button></div>`;
+  if(!todos.length){
     h+=`<p class="hola-sub">Armá un grupo para el asado, el fútbol o el viaje y la app hace las cuentas sola.</p>`;
-    h+=emptyState("users", cerrados.length?"No tenés grupos activos":"Todavía no tenés grupos", "Creá uno nuevo o sumate al de un amigo con el link o el código que te pasó.",
-       `<div class="home-acts" style="margin:16px 0 0"><button class="btn btn-sec" id="hJoin">${ic("link","sm")}Unirme</button><button class="btn btn-primary" id="hNew">${ic("plus","sm")}Nuevo grupo</button></div>`);
+    h+=emptyState("users","Todavía no tenés grupos","Creá uno nuevo o sumate al de un amigo con el link o el código que te pasó.", acciones.replace('class="home-acts"','class="home-acts" style="margin:16px 0 0"'));
   } else {
-    h+=`<p class="hola-sub">${gD||gB ? "Así estás en tus grupos:" : "Estás a mano en todos tus grupos."}</p>`;
+    h+=`<p class="hola-sub">${gD||gB ? "Así estás en tus grupos abiertos:" : "Estás a mano en tus grupos abiertos."}</p>`;
     if(gD||gB) h+=`<div class="global">
         <div class="gbox ${teDeben>EPS?"pos":"neu"}"><div class="l">Te deben</div><div class="v num">${fmt(teDeben)}</div><small>${gD?`en ${gD} grupo${gD===1?"":"s"}`:"nadie"}</small></div>
         <div class="gbox ${debes>EPS?"neg":"neu"}"><div class="l">Debés</div><div class="v num">${fmt(debes)}</div><small>${gB?`en ${gB} grupo${gB===1?"":"s"}`:"nada"}</small></div></div>`;
-    h+=`<div class="sec-t">Tus grupos<span>${activos.length}</span></div><div class="gcards">${activos.map(cardGrupo).join("")}</div>
-      <div class="home-acts"><button class="btn btn-sec" id="hJoin">${ic("link","sm")}Unirme</button><button class="btn btn-primary" id="hNew">${ic("plus","sm")}Nuevo grupo</button></div>`;
-  }
-  if(cerrados.length){
-    h+=`<button class="arch-t" id="archT" aria-expanded="${verLiquidados}"><span>${ic("archive","t")} Liquidados (${cerrados.length})</span>${ic(verLiquidados?"chevUp":"chevDown","sm")}</button>`;
-    if(verLiquidados) h+=`<div class="gcards">${cerrados.map(cardGrupo).join("")}</div>`;
+    h+=`<div class="sec-t">Tus grupos<span>${todos.length}</span></div>
+      <div class="gcards">${todos.map(cardGrupo).join("")}</div>
+      <p class="hint" style="text-align:center;margin-top:10px">Tocá un grupo para entrar · deslizalo a la izquierda para borrarlo</p>
+      ${acciones}`;
   }
   $("content").innerHTML=h;
   $("kpis").innerHTML=""; $("foot").textContent="";
-  $("content").querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>abrirGrupoId(b.dataset.open));
+  bindSwipe($("content"));
   $("perfilBtn").onclick=abrirPerfil;
   $("hNew").onclick=()=>abrirNuevo("crear");
   $("hJoin").onclick=()=>abrirNuevo("unir");
-  if($("archT")) $("archT").onclick=()=>{ verLiquidados=!verLiquidados; renderInicio(); };
 }
 function abrirNuevo(modo){
   $("ng-crear").style.display = modo==="crear"?"":"none";
