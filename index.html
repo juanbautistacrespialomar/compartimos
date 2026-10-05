@@ -167,6 +167,8 @@ input:disabled,select:disabled{opacity:.55}
 .lbl{display:block;font-size:var(--fs-sm);font-weight:600;color:var(--muted);margin:16px 2px 8px}
 .lbl-row{display:flex;align-items:center;justify-content:space-between;margin:16px 0 6px}
 .lbl-row .lbl{margin:0 2px}
+.chk{display:flex;align-items:center;gap:10px;margin:14px 2px 0;font-size:var(--fs-sm);color:var(--txt2);cursor:pointer}
+.chk input{width:20px;height:20px;flex:none;accent-color:var(--accent);margin:0}
 .hint{font-size:var(--fs-xs);color:var(--muted);margin:8px 2px 0;line-height:1.45}
 
 /* Avatares (personas = círculo con inicial) y categorías (cuadrado con ícono): se distinguen por FORMA, no solo por color */
@@ -603,6 +605,7 @@ body.inicio #toasts{bottom:calc(env(safe-area-inset-bottom) + 28px)}
     <div id="ng-unir">
     <label class="lbl" for="ng-link" style="margin-top:6px">Pegá el link o escribí el código que te pasaron</label>
     <input type="text" id="ng-link" placeholder="Link o código (ej: K7XM2Q)" enterkeyhint="go" autocomplete="off" autocapitalize="characters">
+    <label class="chk"><input type="checkbox" id="ng-mio"><span>Este grupo lo creé yo (lo estoy recuperando)</span></label>
     <button class="btn btn-primary btn-block" id="ng-join" style="margin-top:16px"><span data-ic="link"></span>Unirme al grupo</button>
     </div>
   </div>
@@ -740,10 +743,17 @@ const catIc = (k, s) => `<span class="cat-ic" style="--c:${catInfo(k).c}${s?`;--
 const PCOL = ["#6366f1","#10b981","#f59e0b","#ec4899","#06b6d4","#8b5cf6","#ef4444","#84cc16","#3b82f6","#f97316","#14b8a6","#d946ef","#eab308","#0ea5e9","#64748b","#22c55e"];
 /* ============================ DATOS ============================ */
 const KEY="dividirGastos.v1", KEY_YO="compartimos.yo", KEY_COLA="compartimos.cola", KEY_YOMAP="compartimos.yoPorGrupo",
-      KEY_TEMA="compartimos.tema", KEY_CAT="compartimos.ultimaCat";
+      KEY_TEMA="compartimos.tema", KEY_CAT="compartimos.ultimaCat",
+      KEY_RESP="compartimos.respaldo", KEY_RESCATE="compartimos.rescate";
 const mem={};
 function load(k,def){ try{ const r=localStorage.getItem(k); return r?JSON.parse(r):def; }catch(e){ return (k in mem)?mem[k]:def; } }
-function save(k,v){ mem[k]=v; try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+// Antes, si el celu no dejaba guardar (memoria llena), fallaba en silencio. Ahora avisa.
+let avisoLleno=false;
+function save(k,v){
+  mem[k]=v;
+  try{ localStorage.setItem(k,JSON.stringify(v)); return true; }
+  catch(e){ if(!avisoLleno && typeof toast==="function"){ avisoLleno=true; toast("No se pudo guardar en el celu (memoria llena). Bajate un backup desde tu perfil.",{tipo:"err",ms:9000}); } return false; }
+}
 const has=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
 function newId(){ return Date.now()+"_"+Math.random().toString(36).slice(2,6); }
 // Código corto y legible para compartir grupos (sin caracteres ambiguos).
@@ -772,13 +782,36 @@ function norm(s){
   if(!s.proyectos.some(p=>p.id===s.activo)) s.activo=null;
   return s;
 }
-let st = norm(load(KEY,null)); save(KEY,st);
+/* Arranque a prueba de sustos: si lo guardado no se puede leer, NO lo piso con una lista vacía.
+   Lo copio aparte ("rescate") para poder recuperarlo después. */
+let st;
+(function(){
+  let crudo=null; try{ crudo=localStorage.getItem(KEY); }catch(e){}
+  let datos=null, roto=false;
+  if(crudo){ try{ datos=JSON.parse(crudo); }catch(e){ roto=true; } }
+  if(roto){ try{ localStorage.setItem(KEY_RESCATE, crudo); }catch(e){} }
+  st = norm(datos);
+  if(!roto) save(KEY,st);
+})();
 let YO = load(KEY_YO, null);
 let yoMap = load(KEY_YOMAP, {});      // { idGrupo: idPersona | "-" }  — solo local, no se sincroniza
 
 const $ = id => document.getElementById(id);
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
-function persist(){ save(KEY,st); }
+/* Respaldo automático: cada grupo que pasa por la app queda copiado (sin la foto, para no llenar
+   la memoria) en otra clave. Solo sale de ahí si lo borrás vos. Si algún día desaparece un grupo,
+   "Buscar grupos perdidos" lo trae de vuelta desde acá. */
+let _tResp=null;
+function respaldar(){
+  clearTimeout(_tResp);
+  _tResp=setTimeout(()=>{ try{
+    const r=load(KEY_RESP,{}) || {};
+    st.proyectos.forEach(p=>{ r[p.id]={ts:Date.now(), g:{...p, foto:null}}; });
+    localStorage.setItem(KEY_RESP, JSON.stringify(r));
+  }catch(e){} }, 800);
+}
+function olvidarRespaldo(id){ try{ const r=load(KEY_RESP,{})||{}; delete r[id]; localStorage.setItem(KEY_RESP, JSON.stringify(r)); }catch(e){} }
+function persist(){ save(KEY,st); respaldar(); }
 // Grupo abierto en pantalla (null en el Inicio).
 function proy(){ return st.proyectos.find(p=>p.id===st.activo) || null; }
 // Un grupo liquidado se puede mirar, pero no tocar hasta reabrirlo.
@@ -1612,7 +1645,7 @@ async function borrarGrupoDesdeInicio(id){
   const i=st.proyectos.findIndex(p=>p.id===id), P=st.proyectos[i]; if(!P) return;
   const ok=await confirmar({t:`¿Borrar «${P.n}»?`, txt:`Se borra de este celu con todos sus gastos.${P.remoto?" Los demás integrantes lo siguen teniendo.":""}`, ok:"Borrar", peligro:true});
   if(!ok){ if(swAbierto) cerrarSwipe(swAbierto); return; }
-  swAbierto=null; st.proyectos.splice(i,1); persist(); renderInicio();
+  swAbierto=null; st.proyectos.splice(i,1); olvidarRespaldo(P.id); persist(); renderInicio();
   toast(`Borraste «${esc(P.n)}»`,{undo:()=>{ if(st.proyectos.some(p=>p.id===P.id)) return; st.proyectos.splice(Math.min(i,st.proyectos.length),0,P); persist(); if(pantalla==="inicio") renderInicio(); }});
 }
 function renderInicio(){
@@ -1651,7 +1684,7 @@ function abrirNuevo(modo){
   $("ng-crear").style.display = modo==="crear"?"":"none";
   $("ng-unir").style.display  = modo==="unir"?"":"none";
   $("ng-title").textContent = modo==="crear"?"Nuevo grupo":"Unirme a un grupo";
-  $("ng-nombre").value=""; $("ng-link").value="";
+  $("ng-nombre").value=""; $("ng-link").value=""; $("ng-mio").checked=false;
   $("newGroupModal").classList.add("open");
   setTimeout(()=>$(modo==="crear"?"ng-nombre":"ng-link").focus(),150);
 }
@@ -1672,9 +1705,26 @@ function abrirPerfil(){
       <input type="file" id="importFile" accept="application/json,.json" style="display:none">
     </div>
     <p class="hint">Los grupos que no compartiste viven solo en este celu: bajate un backup cada tanto.</p>
+    <span class="lbl">Diagnóstico y recuperación</span>
+    <div id="pf-diag" class="hint" style="margin:0 2px 10px">Revisando…</div>
+    <div class="btn-list">
+      <button class="btn btn-sec" id="pf-buscar">${ic("search","sm")}Buscar grupos perdidos</button>
+      <button class="btn btn-sec" id="pf-enviar">${ic("share","sm")}Enviar diagnóstico</button>
+    </div>
+    <div id="pf-res"></div>
     <span class="lbl">Zona de cuidado</span>
     <button class="btn btn-danger btn-block" id="reset">${ic("trash","sm")}Borrar todo de este celu</button>
     <div class="brand"><img src="logo.svg" alt="">Compartimos v5</div>`, ()=>{
+    infoDiagnostico().then(t=>{ const d=$("pf-diag"); if(d) d.innerHTML=t; });
+    $("pf-buscar").onclick=()=>{
+      const {hallados}=escanearPerdidos(), res=$("pf-res");
+      if(!hallados.length){ res.innerHTML=`<p class="hint" style="margin:10px 2px 0">No encontré grupos guardados aparte en este celu. Si eran compartidos, se recuperan desde el servidor con su código («Unirme»). Si no, tocá «Enviar diagnóstico» y mandámelo.</p>`; return; }
+      res.innerHTML=`<p class="hint" style="margin:10px 2px 8px">Encontré ${hallados.length} grupo${hallados.length>1?"s":""} que no están en tu lista:</p>`+
+        hallados.map(x=>`<div class="listrow"><span>${esc(x.g.n)} <small class="mut">· ${x.g.gastos.length} gastos · ${x.g.personas.length} personas</small></span></div>`).join("")+
+        `<button class="btn btn-primary btn-block" id="pf-recup" style="margin-top:6px">${ic("rotate","sm")}Recuperar ${hallados.length===1?"este grupo":"estos "+hallados.length+" grupos"}</button>`;
+      $("pf-recup").onclick=()=>{ hallados.forEach(x=>{ if(!st.proyectos.some(p=>p.id===x.g.id)) st.proyectos.push(x.g); }); st=norm(st); persist(); cerrarSheet(); irInicio(); toast(`${ic("checkCircle","t")} Recuperé ${hallados.length} grupo${hallados.length>1?"s":""}`); };
+    };
+    $("pf-enviar").onclick=enviarDiagnostico;
     $("pf-nombre").onchange=()=>{ const v=$("pf-nombre").value.trim(); if(!v) return; YO={id:(YO&&YO.id)||newId(), nombre:v}; save(KEY_YO,YO); render(); toast(`${ic("check","t")} Nombre guardado`); };
     $("pf-tema").querySelectorAll("button").forEach(b=>b.onclick=()=>{ aplicarTema(b.dataset.t); $("pf-tema").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); });
     $("backup").onclick=()=>{ const data={app:"Compartimos",fecha:new Date().toISOString(),st}; const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"})); a.download="backup_compartimos_"+hoy()+".json"; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); };
@@ -1684,8 +1734,47 @@ function abrirPerfil(){
           if(await confirmar({t:"¿Restaurar el backup?", txt:"Reemplaza TODOS los grupos de este celu por los del archivo.", ok:"Restaurar", peligro:true})){ st=norm(cand); st.activo=null; persist(); cerrarSheet(); irInicio(); toast(`${ic("check","t")} Backup restaurado`); }
         }catch(err){ toast("No pude leer el archivo. ¿Es un backup válido?",{tipo:"err"}); } e.target.value=""; };
       r.readAsText(file); };
-    $("reset").onclick=async()=>{ if(await confirmar({t:"¿Borrar todo?", txt:"Se borran todos los grupos de este celu. Los compartidos los siguen teniendo los demás. No se puede deshacer.", ok:"Borrar todo", peligro:true})){ st=SEED(); persist(); cerrarSheet(); irInicio(); } };
+    $("reset").onclick=async()=>{ if(await confirmar({t:"¿Borrar todo?", txt:"Se borran todos los grupos de este celu. Los compartidos los siguen teniendo los demás. No se puede deshacer.", ok:"Borrar todo", peligro:true})){ st=SEED(); try{ localStorage.removeItem(KEY_RESP); }catch(e){} persist(); cerrarSheet(); irInicio(); } };
   });
+}
+
+/* ============ Diagnóstico y recuperación ============ */
+const modoApp = () => (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone ? "app instalada" : "navegador";
+async function infoDiagnostico(){
+  let usado="?", persiste="?";
+  try{ if(navigator.storage && navigator.storage.estimate){ const e=await navigator.storage.estimate(); usado=Math.round((e.usage||0)/1024)+" KB"; } }catch(e){}
+  try{ if(navigator.storage && navigator.storage.persisted) persiste = (await navigator.storage.persisted()) ? "protegidos" : "sin protección extra"; }catch(e){}
+  let bytes=0; try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); bytes+=(localStorage.getItem(k)||"").length; } }catch(e){}
+  return `Abierta como <b>${modoApp()}</b> · ${st.proyectos.length} grupo${st.proyectos.length===1?"":"s"} guardado${st.proyectos.length===1?"":"s"} · datos de la app: ${Math.round(bytes/1024)} KB · almacenamiento total: ${usado} · datos ${persiste}.`;
+}
+// Recorre TODO lo que la app tiene guardado en el celu buscando grupos que no estén en la lista.
+function escanearPerdidos(){
+  const actuales=new Set(st.proyectos.map(p=>p.id)), hallados={}, claves=[];
+  const agregar=(g,origen)=>{ if(!g || !g.id || !Array.isArray(g.gastos) || actuales.has(g.id)) return;
+    const prev=hallados[g.id]; if(!prev || g.gastos.length>prev.g.gastos.length) hallados[g.id]={g, origen}; };
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i), raw=localStorage.getItem(k)||"";
+      claves.push({clave:k, kb:Math.round(raw.length/102.4)/10});
+      let d; try{ d=JSON.parse(raw); }catch(e){ continue; }
+      if(!d || typeof d!=="object") continue;
+      if(k===KEY_RESP) Object.values(d).forEach(x=>agregar(x&&x.g, "respaldo automático"));
+      const cand=d.st||d;
+      if(Array.isArray(cand.proyectos)) cand.proyectos.forEach(g=>agregar(g, k));
+    }
+  }catch(e){}
+  return {hallados:Object.values(hallados), claves};
+}
+async function enviarDiagnostico(){
+  const {hallados, claves}=escanearPerdidos();
+  const datos={}; try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); datos[k]=localStorage.getItem(k); } }catch(e){}
+  const info={app:"Compartimos v5", fecha:new Date().toISOString(), modo:modoApp(), navegador:navigator.userAgent,
+    grupos:st.proyectos.map(p=>({id:p.id, n:p.n, personas:p.personas.length, gastos:p.gastos.length, cerrado:!!p.cerrado, compartido:!!p.remoto})),
+    perdidosEncontrados:hallados.map(x=>({id:x.g.id, n:x.g.n, origen:x.origen})), claves, datos};
+  const blob=new Blob([JSON.stringify(info,null,2)],{type:"application/json"});
+  const file=new File([blob],"diagnostico_compartimos_"+hoy()+".json",{type:"application/json"});
+  try{ if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:"Diagnóstico Compartimos"}); return; } }catch(e){ if(e&&e.name==="AbortError") return; }
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=file.name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 
 /* ============ Pestaña GRUPO: todo lo de este grupo en un lugar ============ */
@@ -1754,7 +1843,7 @@ function renderGrupoTab(){
   $("g-csv").onclick=exportar;
   $("g-borrar").onclick=async()=>{
     if(!await confirmar({t:`¿Borrar «${P.n}»?`, txt:`Se borra de este celu con todos sus gastos.${P.remoto?" Los demás lo siguen teniendo.":""} No se puede deshacer.`, ok:"Borrar", peligro:true})) return;
-    st.proyectos=st.proyectos.filter(p=>p.id!==P.id); persist(); volver(); toast("Grupo borrado de este celu");
+    st.proyectos=st.proyectos.filter(p=>p.id!==P.id); olvidarRespaldo(P.id); persist(); volver(); toast("Grupo borrado de este celu");
   };
   if($("g-cerrar")) $("g-cerrar").onclick=async()=>{
     const pend=transferenciasPendientes().length;
@@ -2060,15 +2149,16 @@ function unirseAGrupo(){
   const g=extraerGid($("ng-link").value);
   if(!g){ toast("Pegá el link o el código que te pasaron.",{tipo:"err"}); return; }
   let P=st.proyectos.find(p=>p.id===g);
-  if(!P){ P=grupoVacio("Grupo compartido"); P.id=g; P.remoto=g; P.creador=false; st.proyectos.push(P); }
-  else { P.remoto=g; }
+  const mio=$("ng-mio").checked;   // si lo creaste vos, recuperás también el permiso de cerrarlo
+  if(!P){ P=grupoVacio("Grupo compartido"); P.id=g; P.remoto=g; P.creador=mio; st.proyectos.push(P); }
+  else { P.remoto=g; if(mio) P.creador=true; }
   delete grupoNoExiste[g]; persist();
   $("newGroupModal").classList.remove("open");
   abrirGrupoId(g);
   fetchRemoto(g,true).then(ok=>{
     if(ok) return toast(`${ic("checkCircle","t")} Te uniste a «${esc(P.n)}»`);
     // Código que no existe: no dejo un grupo vacío dando vueltas en el Inicio.
-    if(grupoNoExiste[g] && !P.gastos.length && !P.personas.length){ st.proyectos=st.proyectos.filter(x=>x.id!==g); persist(); if(pantalla==="grupo" && st.activo===g) volver(); }
+    if(grupoNoExiste[g] && !P.gastos.length && !P.personas.length){ st.proyectos=st.proyectos.filter(x=>x.id!==g); olvidarRespaldo(g); persist(); if(pantalla==="grupo" && st.activo===g) volver(); }
   });
 }
 $("ng-ok").onclick=crearGrupo;
@@ -2088,6 +2178,9 @@ function pedirNombre(){
 if(!YO || !YO.nombre) pedirNombre();
 
 history.replaceState({p:"inicio"},"");
+// Le pido al celu que NO borre los datos de la app aunque necesite espacio.
+try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){}
+respaldar();
 st.activo=null; persist();                       // la app siempre arranca en el Inicio…
 render();
 detectarApi().finally(()=>{ entrarPorLink(); vaciarCola(); programarPoll(1500); });   // …salvo que entres con un link ?g=
