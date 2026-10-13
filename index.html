@@ -2001,7 +2001,7 @@ function drawLogo(ctx,x,y,s,bg){
 }
 // Texto que acompaña a la foto (o se manda solo). Va el alias en su propia línea y sin
 // asteriscos ni símbolos alrededor: así, al copiarlo de WhatsApp, sale limpio para pegar en
-// el home banking. Si el grupo está compartido, sumo el link: ahí cada alias tiene su botón "Copiar".
+// el home banking.
 function textoResumen(P,pagos){
   P=P||proy(); pagos=pagos||transferenciasPendientes(P);
   const L=[`💸 *${P.n}* · Total ${fmt(computar(P).total)}`, ""];
@@ -2013,7 +2013,6 @@ function textoResumen(P,pagos){
       if(d&&d.alias){ L.push(`Alias de ${d.n}:`); L.push(d.alias); }
     });
   }
-  if(P.remoto) L.push("", "📲 Para copiar cada alias de un toque, abrí el grupo:", linkGrupo(P));
   return L.join("\n");
 }
 async function compartirTexto(){
