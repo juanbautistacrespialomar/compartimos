@@ -1786,6 +1786,7 @@ function renderGrupoTab(){
     <div class="panel"><div class="phead"><p class="ptitle">${ic("download")}Exportar</p></div>
       <div class="btn-list">
         <button class="btn btn-sec" id="g-foto">${ic("image","sm")}Resumen como imagen (para WhatsApp)</button>
+        <button class="btn btn-sec" id="g-texto">${ic("copy","sm")}Resumen como texto (alias copiables)</button>
         <button class="btn btn-sec" id="g-csv">${ic("file","sm")}Planilla para Excel (CSV)</button>
       </div></div>
 
@@ -1801,6 +1802,7 @@ function renderGrupoTab(){
   // Cambios de texto: guardo sin repintar la pantalla (así no te saca del campo siguiente).
   $("g-soy").onchange=e=>{ const v=e.target.value; if(v) yoMap[P.id]=v; else delete yoMap[P.id]; save(KEY_YOMAP,yoMap); toast(`${ic("check","t")} Listo`); };
   $("g-foto").onclick=exportarFoto;
+  $("g-texto").onclick=()=>compartirTexto();
   $("g-csv").onclick=exportar;
   $("g-borrar").onclick=async()=>{
     if(!await confirmar({t:`¿Borrar «${P.n}»?`, txt:`Se borra de este celu con todos sus gastos.${P.remoto?" Los demás lo siguen teniendo.":""} No se puede deshacer.`, ok:"Borrar", peligro:true})) return;
@@ -1997,6 +1999,28 @@ function drawLogo(ctx,x,y,s,bg){
   [[29.2,38],[70.8,38],[50,74]].forEach(([px,py])=>{ ctx.beginPath(); ctx.arc(px,py-4.5,4.6,0,7); ctx.fill(); ctx.fill(new Path2D(`M${px-7.5} ${py+6.5}a7.5 6.5 0 0 1 15 0z`)); });
   ctx.restore();
 }
+// Texto que acompaña a la foto (o se manda solo). Va el alias en su propia línea y sin
+// asteriscos ni símbolos alrededor: así, al copiarlo de WhatsApp, sale limpio para pegar en
+// el home banking. Si el grupo está compartido, sumo el link: ahí cada alias tiene su botón "Copiar".
+function textoResumen(P,pagos){
+  P=P||proy(); pagos=pagos||transferenciasPendientes(P);
+  const L=[`💸 *${P.n}* · Total ${fmt(computar(P).total)}`, ""];
+  if(!pagos.length) L.push("✅ Están todos a mano. Nadie debe nada.");
+  else{
+    L.push("*Quién le transfiere a quién*");
+    pagos.forEach(t=>{ const d=persona(t.a,P);
+      L.push("", `• ${pName(t.de,P)} → ${pName(t.a,P)}: *${fmt(t.monto)}*`);
+      if(d&&d.alias){ L.push(`Alias de ${d.n}:`); L.push(d.alias); }
+    });
+  }
+  if(P.remoto) L.push("", "📲 Para copiar cada alias de un toque, abrí el grupo:", linkGrupo(P));
+  return L.join("\n");
+}
+async function compartirTexto(){
+  const P=proy(); if(!P) return; const texto=textoResumen(P);
+  try{ if(navigator.share){ await navigator.share({text:texto}); return; } }catch(e){ if(e&&e.name==="AbortError") return; }
+  copiar(texto,"Resumen copiado, pegalo en WhatsApp");
+}
 // Imagen para mandar al grupo de WhatsApp. Paleta fija (oscura) para que se vea igual siempre.
 function exportarFoto(){
   const P=proy(), c=computar(), pagos=transferenciasPendientes();
@@ -2068,7 +2092,13 @@ function exportarFoto(){
 
   cv.toBlob(async blob=>{
     const file=new File([blob],"gastos_"+P.n.replace(/[^\w]+/g,"_")+".png",{type:"image/png"});
-    try{ if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:"Gastos · "+P.n}); return; } }catch(e){ if(e&&e.name==="AbortError") return; }
+    // La foto viaja con el texto como epígrafe: en WhatsApp el alias queda como texto real, copiable.
+    // Si el navegador no acepta foto + texto juntos, mando solo la foto (como antes).
+    const texto=textoResumen(P,pagos);
+    try{
+      if(navigator.canShare && navigator.canShare({files:[file], text:texto})){ await navigator.share({files:[file], text:texto}); return; }
+      if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:"Gastos · "+P.n}); return; }
+    }catch(e){ if(e&&e.name==="AbortError") return; }
     const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=file.name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
   },"image/png");
 }
