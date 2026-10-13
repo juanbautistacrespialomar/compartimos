@@ -109,16 +109,23 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{ou
 .i.lg{width:22px;height:22px}
 
 /* ============================ HERO ============================ */
-.hero{position:relative;width:100%;min-height:212px;background-size:cover;background-position:center;background-color:var(--card2);display:flex;flex-direction:column;justify-content:space-between;color:#fff;isolation:isolate}
-.hero.compact{min-height:0}
-.hero.no-foto{background-image:linear-gradient(135deg,#4f46e5 0%,#6d5df0 45%,#2b3a8f 100%)!important}
-.hero-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(2,6,23,.32) 0%,rgba(2,6,23,.08) 40%,rgba(10,13,31,.9) 100%);pointer-events:none}
-.hero-top{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;padding:calc(env(safe-area-inset-top) + 12px) 16px 0}
+/* La foto se muestra ENTERA (sin recortar): va en su propia caja, centrada y con su proporción real.
+   Si no llena el ancho (foto vertical), los costados quedan del color de la franja, como en el visor
+   de WhatsApp. El título y los carteles van debajo, en una franja aparte, para no taparla. */
+.hero{position:relative;width:100%;background:#1a1e4a;display:flex;flex-direction:column;color:#fff;isolation:isolate}
+.hero.no-foto{background:linear-gradient(135deg,#4f46e5 0%,#6d5df0 45%,#2b3a8f 100%)}
+.hero-media{position:relative;display:flex;justify-content:center;align-items:center;padding-top:max(env(safe-area-inset-top),12px);min-height:calc(max(env(safe-area-inset-top),12px) + 64px)}
+.hero-media img{display:block;max-width:100%;max-height:300px;width:auto;height:auto;object-fit:contain}
+.hero.compact .hero-media img{max-height:200px}
+.hero.no-foto .hero-media img{display:none}
+.hero.no-foto:not(.compact) .hero-media{min-height:calc(max(env(safe-area-inset-top),12px) + 110px)}
+.hero-top{position:absolute;z-index:1;left:0;right:0;top:calc(max(env(safe-area-inset-top),12px) + 10px);display:flex;justify-content:space-between;align-items:center;padding:0 14px;pointer-events:none}
+.hero-top .hero-btn{pointer-events:auto}
 .hero-btn{width:42px;height:42px;border-radius:50%;border:none;background:rgba(10,13,31,.62);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .hero-btn:active{background:rgba(10,13,31,.8)}
 .hero-btn:disabled{opacity:.4}
-.hero-foot{position:relative;z-index:1;padding:14px 18px 16px}
-.hero-title{margin:0;display:inline-flex;align-items:center;max-width:100%;background:rgba(10,13,31,.66);border:1px solid rgba(255,255,255,.22);border-radius:var(--r-md);padding:6px 14px;font-size:inherit;font-weight:inherit}
+.hero-foot{position:relative;z-index:1;padding:12px 16px 14px}
+.hero-title{margin:0;display:inline-flex;align-items:center;max-width:100%;min-width:0;font-size:inherit;font-weight:inherit}
 .hero-title #heroName{font-size:var(--fs-2xl);font-weight:800;letter-spacing:-.4px;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hero.compact .hero-title #heroName{font-size:var(--fs-xl)}
 .hero-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
@@ -126,14 +133,19 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{ou
 .hero-act.show{display:inline-flex}
 #heroReabrir{background:var(--warn);color:#1a1205}
 .hero-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}
-.hero-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(10,13,31,.66);font-size:var(--fs-sm);font-weight:600;padding:6px 12px;border-radius:var(--r-pill)}
-.sync-chip{display:none;align-items:center;gap:6px;background:rgba(10,13,31,.66);font-size:var(--fs-xs);font-weight:600;padding:6px 11px;border-radius:var(--r-pill)}
+.hero-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.14);font-size:var(--fs-sm);font-weight:600;padding:6px 12px;border-radius:var(--r-pill)}
+.sync-chip{display:none;align-items:center;gap:6px;background:rgba(255,255,255,.14);font-size:var(--fs-xs);font-weight:600;padding:6px 11px;border-radius:var(--r-pill)}
 .sync-chip.show{display:inline-flex}
 .sync-chip .sdot{width:8px;height:8px;border-radius:50%;background:#34d399;flex:none}
 .sync-chip.saving .sdot{background:#fbbf24;animation:pulse 1s ease-in-out infinite}
 .sync-chip.offline .sdot{background:#94a3b8}
 
-.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px}
+/* El total va solo en el primer renglón, a lo ancho: así entra completo aunque sean millones. */
+.kpi.total{grid-column:1/-1;flex-direction:row;justify-content:space-between;align-items:flex-end;gap:12px;padding:12px 14px}
+.kpi.total .tot{min-width:0}
+.kpi.total .val{font-size:clamp(22px,7vw,28px);margin-top:2px}
+.kpi.total .sub{flex:none;margin:0 0 4px}
 .kpi{display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch;background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:11px 12px;box-shadow:var(--sh-1);text-align:left;min-width:0;font:inherit;color:var(--txt)}
 button.kpi{cursor:pointer;transition:transform .12s ease}
 button.kpi:active{transform:scale(.97)}
@@ -522,10 +534,12 @@ body.inicio #toasts{bottom:calc(env(safe-area-inset-bottom) + 28px)}
 <div id="sbar" aria-hidden="true"></div>
 <div id="scroller">
 <header class="hero no-foto" id="hero">
-  <div class="hero-shade"></div>
-  <div class="hero-top">
-    <button class="hero-btn" id="backBtn" title="Mis grupos" aria-label="Volver a mis grupos"><span data-ic="arrowLeft"></span></button>
-    <button class="hero-btn" id="grupoBtn" title="Invitar al grupo" aria-label="Invitar al grupo"><span data-ic="share"></span></button>
+  <div class="hero-media">
+    <img id="heroImg" alt="Foto del grupo">
+    <div class="hero-top">
+      <button class="hero-btn" id="backBtn" title="Mis grupos" aria-label="Volver a mis grupos"><span data-ic="arrowLeft"></span></button>
+      <button class="hero-btn" id="grupoBtn" title="Invitar al grupo" aria-label="Invitar al grupo"><span data-ic="share"></span></button>
+    </div>
   </div>
   <div class="hero-foot">
     <div class="hero-row">
@@ -1200,8 +1214,10 @@ window.addEventListener("popstate", ()=>{
 function renderHero(){
   const P=proy(), hero=$("hero");
   hero.classList.toggle("compact", vista!=="resumen");
-  if(P.foto){ hero.style.backgroundImage=`url("${P.foto}")`; hero.classList.remove("no-foto"); }
-  else { hero.style.backgroundImage=""; hero.classList.add("no-foto"); }
+  // Solo cambio el src si la foto es otra: así no parpadea en cada redibujo.
+  const img=$("heroImg");
+  if(P.foto){ if(img.getAttribute("src")!==P.foto) img.src=P.foto; hero.classList.remove("no-foto"); }
+  else { img.removeAttribute("src"); hero.classList.add("no-foto"); }
   $("heroName").textContent = P.n;
   const pagos=transferenciasPendientes(), nP=P.personas.length;
   const estado = !P.gastos.length ? "sin gastos aún" : (pagos.length ? `${pagos.length} pago${pagos.length>1?"s":""} pendiente${pagos.length>1?"s":""}` : "todo saldado");
@@ -1221,7 +1237,7 @@ function actualizarSync(){
 
 function kpisHTML(c){
   const P=proy(), yo=miPersonaId(), E=epsM(), nG=P.gastos.length;
-  const k1=`<div class="kpi"><div class="lbl">Total</div><div class="val num">${fmt(c.total)}</div><div class="sub">${nG} gasto${nG===1?"":"s"}</div></div>`;
+  const k1=`<div class="kpi total"><div class="tot"><div class="lbl">Total gastado</div><div class="val num">${fmt(c.total)}</div></div><div class="sub">${nG} gasto${nG===1?"":"s"}</div></div>`;
   if(yo){
     const parte=c.consumo[yo]||0, net=c.bal[yo]||0;
     const lbl = net>E?"Te deben":net<-E?"Debés":"Tu saldo", cls = net>E?"pos":net<-E?"neg":"";
