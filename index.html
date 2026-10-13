@@ -506,13 +506,16 @@ body.inicio #toasts{bottom:calc(env(safe-area-inset-bottom) + 28px)}
 .tab.active{color:var(--accent-ink)}
 .tab.active::before{content:"";position:absolute;inset:1px;background:var(--accent-bg);border-radius:20px}
 
-/* Botón flotante extendido */
-#fab{position:absolute;right:16px;bottom:calc(env(safe-area-inset-bottom) + 98px);z-index:51;display:inline-flex;align-items:center;gap:8px;height:52px;padding:0 20px 0 16px;border-radius:var(--r-pill);background:var(--accent-fill);color:#fff;border:none;font:inherit;font-weight:800;font-size:var(--fs-base);box-shadow:0 8px 24px rgba(79,70,229,.5);cursor:pointer}
-#fab:active{background:var(--accent-fill-2);transform:scale(.97)}
-#fab .i{width:20px;height:20px;stroke-width:2.6}
+/* Botón "+" para cargar gasto: vive en el centro de la barra y sobresale hacia arriba.
+   Ya no flota sobre el contenido, así que no tapa nada ni se pierde contra fondos violetas.
+   El borde del color del fondo de la app hace de "recorte" entre el círculo y la barra. */
+#fab{flex:none;align-self:flex-start;width:58px;height:58px;margin:-26px 6px 0;padding:0;border-radius:50%;background:var(--accent-fill);color:#fff;border:4px solid var(--bg);box-shadow:0 6px 18px rgba(79,70,229,.5);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;z-index:2;transition:transform .12s ease,opacity .2s}
+#fab:active{background:var(--accent-fill-2);transform:scale(.94)}
+#fab .i{width:26px;height:26px;stroke-width:2.6}
+#fab.off{opacity:.45;box-shadow:none}
 
 /* Cartel "hay versión nueva" */
-.update-bar{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 100px);z-index:120;background:var(--card);border:1px solid var(--accent);border-radius:var(--r-lg);padding:12px 12px 12px 15px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 8px 32px rgba(99,102,241,.45);opacity:0;transform:translateY(24px);pointer-events:none;transition:opacity .3s,transform .3s}
+.update-bar{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 118px);z-index:120;background:var(--card);border:1px solid var(--accent);border-radius:var(--r-lg);padding:12px 12px 12px 15px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 8px 32px rgba(99,102,241,.45);opacity:0;transform:translateY(24px);pointer-events:none;transition:opacity .3s,transform .3s}
 .update-bar.show{opacity:1;transform:none;pointer-events:auto}
 .update-bar .ub-txt{font-size:var(--fs-md);font-weight:700;display:flex;align-items:center;gap:8px}
 @media(min-width:600px){.update-bar{left:50%;right:auto;transform:translateX(-50%) translateY(24px);width:100%;max-width:560px}.update-bar.show{transform:translateX(-50%)}}
@@ -564,12 +567,12 @@ body.inicio #toasts{bottom:calc(env(safe-area-inset-bottom) + 28px)}
   <div class="bottomnav-inner" id="tabs">
     <button class="tab active" data-v="gastos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span>Gastos</span></button>
     <button class="tab" data-v="resumen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 16v-4M12 16V8M17 16v-7"/></svg><span>Resumen</span></button>
+    <button id="fab" aria-label="Cargar gasto" title="Cargar gasto"><span data-ic="plus"></span></button>
     <button class="tab" data-v="cuentas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><span>Cuentas</span></button>
     <button class="tab" data-v="grupo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Grupo</span></button>
   </div>
 </nav>
 
-<button id="fab" aria-label="Cargar gasto"><span data-ic="plus"></span>Gasto</button>
 
 <div id="toasts" aria-live="polite"></div>
 
@@ -1258,7 +1261,9 @@ function render(){
   const ro=soloLectura();
   renderHero();
   document.querySelectorAll(".tab").forEach(t=>{ const on=t.dataset.v===vista; t.classList.toggle("active",on); if(on) t.setAttribute("aria-current","page"); else t.removeAttribute("aria-current"); });
-  $("fab").style.display = (ro || vista==="grupo" || vista==="cuentas") ? "none" : "";
+  // El "+" está siempre en la barra (si lo escondo, las pestañas saltan de lugar). En un grupo
+  // liquidado queda apagado y, si lo tocan, abrirModal avisa que hay que reabrirlo.
+  $("fab").classList.toggle("off", ro);
   const c=computar();
   const mostrarKpis = vista!=="grupo" && P.personas.length>0 && P.gastos.length>0;
   $("kpis").style.display = mostrarKpis?"":"none";
@@ -1473,22 +1478,25 @@ function tiempoHTML(c){
   const it=s.items, n=it.length, acum=modoDia==="acum";
   let run=0; const vals=it.map(x=>acum?(run+=x.v):x.v);
   if(selDia==null || selDia>=n) selDia=n-1;
-  const W=340, H=160, top=20, bot=24, ph=H-top-bot, max=Math.max(1,...vals);
-  const y=v=>top+ph-(v/max)*ph, cw=W/n;
-  let g=`<line class="grid" x1="0" x2="${W}" y1="${y(max)}" y2="${y(max)}"/><line class="grid" x1="0" x2="${W}" y1="${y(max/2)}" y2="${y(max/2)}"/>
-    <text class="ax" x="2" y="${y(max)-6}">${esc(fmtC(max))}</text><text class="ax" x="2" y="${y(max/2)-6}">${esc(fmtC(max/2))}</text>`;
+  const W=340, H=160, top=12, bot=24, ph=H-top-bot, max=Math.max(1,...vals);
+  // Los montos del eje van en una columna propia a la izquierda (gl = ancho de esa columna, según el
+  // texto más largo). Las barras arrancan después, así nunca se pisan con los números.
+  const lMax=fmtC(max), lMed=fmtC(max/2), gl=Math.ceil(Math.max(lMax.length,lMed.length)*6.4)+8;
+  const y=v=>top+ph-(v/max)*ph, cw=(W-gl)/n, cx=i=>gl+(i+.5)*cw;
+  let g=`<line class="grid" x1="${gl}" x2="${W}" y1="${y(max)}" y2="${y(max)}"/><line class="grid" x1="${gl}" x2="${W}" y1="${y(max/2)}" y2="${y(max/2)}"/>
+    <text class="ax" x="${gl-6}" y="${y(max)+4}" text-anchor="end">${esc(lMax)}</text><text class="ax" x="${gl-6}" y="${y(max/2)+4}" text-anchor="end">${esc(lMed)}</text>`;
   if(acum){
-    const pts=vals.map((v,i)=>[(i+.5)*cw, y(v)]);
+    const pts=vals.map((v,i)=>[cx(i), y(v)]);
     g+=`<path class="area" d="M${pts[0][0]} ${top+ph} ${pts.map(p=>"L"+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ")} L${pts[n-1][0]} ${top+ph}Z"/>
         <path class="line" d="${pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ")}"/>
         <circle class="dot" cx="${pts[selDia][0]}" cy="${pts[selDia][1]}" r="5"/>`;
   } else {
     const bw=Math.max(2,Math.min(28,cw*.66));
-    g+=vals.map((v,i)=>{ const h=Math.max(v>0?2:0,(v/max)*ph); return `<rect class="bar ${i===selDia?"sel":""}" x="${((i+.5)*cw-bw/2).toFixed(1)}" y="${(top+ph-h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="${Math.min(4,bw/3).toFixed(1)}"/>`; }).join("");
+    g+=vals.map((v,i)=>{ const h=Math.max(v>0?2:0,(v/max)*ph); return `<rect class="bar ${i===selDia?"sel":""}" x="${(cx(i)-bw/2).toFixed(1)}" y="${(top+ph-h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="${Math.min(4,bw/3).toFixed(1)}"/>`; }).join("");
   }
   const marcas = n<=8 ? it.map((_,i)=>i) : [0, Math.floor((n-1)/2), n-1];
-  g+=marcas.map(i=>`<text class="ax" x="${((i+.5)*cw).toFixed(1)}" y="${H-6}" text-anchor="middle" ${i===selDia?'style="fill:var(--txt);font-weight:700"':""}>${esc(it[i].ax)}</text>`).join("");
-  g+=it.map((_,i)=>`<rect class="hit" data-i="${i}" x="${(i*cw).toFixed(1)}" y="0" width="${cw.toFixed(1)}" height="${H}"/>`).join("");
+  g+=marcas.map(i=>`<text class="ax" x="${cx(i).toFixed(1)}" y="${H-6}" text-anchor="middle" ${i===selDia?'style="fill:var(--txt);font-weight:700"':""}>${esc(it[i].ax)}</text>`).join("");
+  g+=it.map((_,i)=>`<rect class="hit" data-i="${i}" x="${(i?gl+i*cw:0).toFixed(1)}" y="0" width="${(i?cw:gl+cw).toFixed(1)}" height="${H}"/>`).join("");
   const sel=it[selDia];
   return `<div class="panel"><div class="phead"><p class="ptitle">${ic(acum?"trend":"bars")}Gasto ${s.modo==="dia"?"por día":"por mes"}</p>
       <div class="seg sm" id="segDia"><button data-m="dia" class="${!acum?"on":""}">${s.modo==="dia"?"Diario":"Mensual"}</button><button data-m="acum" class="${acum?"on":""}">Acumulado</button></div></div>

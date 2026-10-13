@@ -11,7 +11,7 @@
    │  A cada persona le va a aparecer el cartel "Hay versión nueva". │
    └───────────────────────────────────────────────────────────────┘ */
 
-const VERSION = "v33";
+const VERSION = "v35";
 const CACHE = "compartimos-" + VERSION;
 const FONTS = "compartimos-fonts";        // no lleva versión: las fuentes no cambian
 const ASSETS = [
