@@ -850,8 +850,10 @@ function persist(){ if(arranqueDudoso) return; save(KEY,st); respaldar(); }
 function proy(){ return st.proyectos.find(p=>p.id===st.activo) || null; }
 // Un grupo liquidado se puede mirar, pero no tocar hasta reabrirlo.
 function soloLectura(){ const p=proy(); return !!p && !!p.cerrado; }
-// Cerrar/reabrir un grupo COMPARTIDO solo lo maneja quien lo creó (evita el ping-pong de sync).
-function puedeCerrar(P){ return !!P && (!P.remoto || P.creador!==false); }
+// Cualquiera del grupo puede cerrarlo o reabrirlo. Cerrar exige que esté todo saldado:
+// si quedaran pagos sin marcar, nadie los podría registrar (liquidado = solo lectura).
+function puedeCerrar(P){ return !!P; }
+function estaSaldado(P){ return transferenciasPendientes(P).length===0; }
 function persona(id,P){ return (P||proy()).personas.find(x=>x.id===id); }
 function pName(id,P){ const p=persona(id,P); return p?p.n:"(borrado)"; }
 function pColor(id,P){ const i=(P||proy()).personas.findIndex(p=>p.id===id); return PCOL[(i<0?14:i)%PCOL.length]; }
@@ -1016,9 +1018,14 @@ async function pollActivo(){
     return fetchRemoto(P.id);
   }
   // En el Inicio voy refrescando los grupos compartidos de a uno por vuelta (con /rev es casi gratis).
-  const rem = st.proyectos.filter(p=>p.remoto && !p.cerrado && !grupoNoExiste[p.id]);
-  if(!rem.length) return false;
-  return fetchRemoto(rem[(turno++)%rem.length].id);
+  // Los liquidados también, pero de vez en cuando (1 de cada 5 vueltas): así, si alguien
+  // del grupo lo reabre, te vuelve a aparecer como abierto sin tener que entrar.
+  const vivos = st.proyectos.filter(p=>p.remoto && !grupoNoExiste[p.id]);
+  const abiertos = vivos.filter(p=>!p.cerrado), cerrados = vivos.filter(p=>p.cerrado);
+  turno++;
+  if(cerrados.length && (!abiertos.length || turno%5===0)) return fetchRemoto(cerrados[Math.floor(turno/5)%cerrados.length].id);
+  if(!abiertos.length) return false;
+  return fetchRemoto(abiertos[turno%abiertos.length].id);
 }
 function programarPoll(ms){
   clearTimeout(pollTimer);
@@ -1170,7 +1177,8 @@ const ACTV = {
   add:{v:"agregó", c:"var(--pos)"}, edit:{v:"editó", c:"var(--warn)"}, del:{v:"borró", c:"var(--neg)"},
   restore:{v:"restauró", c:"var(--pos)"}, pay:{v:"registró un pago", c:"var(--accent-ink)"},
   panadd:{v:"sumó a", c:"var(--pos)"}, pandel:{v:"quitó a", c:"var(--neg)"}, panedit:{v:"editó a", c:"var(--warn)"},
-  grupo:{v:"renombró el grupo a", c:"var(--accent-ink)"}, foto:{v:"cambió la foto", c:"var(--accent-ink)"}
+  grupo:{v:"renombró el grupo a", c:"var(--accent-ink)"}, foto:{v:"cambió la foto", c:"var(--accent-ink)"},
+  cerrar:{v:"cerró el grupo", c:"var(--muted)"}, reabrir:{v:"reabrió el grupo", c:"var(--warn)"}
 };
 function logAct(P, tipo, det, monto){
   if(!P) return;
@@ -1527,7 +1535,10 @@ function renderCuentas(c){
 
   // 1) Quién le transfiere a quién
   h += `<div class="panel"><div class="phead"><p class="ptitle">${ic("swap")}Quién le paga a quién</p><button class="btn btn-text btn-sm" id="fotoBtn">${ic("image","sm")}Imagen</button></div>`;
-  if(!pagos.length) h += `<div class="settled">${ic("checkCircle")}<span>Están todos a mano. Nadie le debe nada a nadie.</span></div>`;
+  if(!pagos.length){
+    h += `<div class="settled">${ic("checkCircle")}<span>Están todos a mano. Nadie le debe nada a nadie.</span></div>`;
+    if(!P.cerrado) h += `<button class="btn btn-sec btn-block" id="cerrarDesdeCuentas" style="margin-top:10px">${ic("archive","sm")}Cerrar grupo</button>`;
+  }
   else {
     h += pagos.map((t,i)=>{ const dest=persona(t.a,P);
       return `<div class="tr ${i===0?"first":""}"><div class="tr-main">
@@ -1573,6 +1584,7 @@ function renderCuentas(c){
   $("content").innerHTML=h;
   bindPersonal($("content"));
   $("fotoBtn").onclick=exportarFoto;
+  if($("cerrarDesdeCuentas")) $("cerrarDesdeCuentas").onclick=()=>cerrarGrupo(P);
   $("content").querySelectorAll("[data-copy]").forEach(b=>b.onclick=()=>copiar(b.dataset.copy,"Alias copiado"));
   $("content").querySelectorAll("[data-estado]").forEach(b=>b.onclick=()=>abrirEstado(b.dataset.estado));
   $("content").querySelectorAll("[data-undo]").forEach(b=>b.onclick=()=>{ const P=proy(); const l=P.liquidaciones.find(x=>x.id===b.dataset.undo); quitarLiq(P.id,b.dataset.undo); if(l) toast(`Pago deshecho: ${esc(pName(l.de))} → ${esc(pName(l.a))}`,{undo:()=>marcarPagado(l.de,l.a,l.monto)}); });
@@ -1773,11 +1785,22 @@ function comprimirImagen(file, cb){
 }
 async function reabrir(P){
   if(!P||!P.cerrado||!puedeCerrar(P)) return;
-  if(!await confirmar({t:`¿Reabrir «${P.n}»?`, txt:"Vuelve a tus grupos activos y se pueden seguir cargando gastos.", ok:"Reabrir"})) return;
-  P.cerrado=false; syncProyecto(P); persist(); render(); toast(`${ic("rotate","t")} Grupo reabierto`);
+  if(!await confirmar({t:`¿Reabrir «${P.n}»?`, txt:"Vuelve a los grupos activos"+(P.remoto?" de todos":"")+" y se pueden seguir cargando gastos.", ok:"Reabrir"})) return;
+  P.cerrado=false; logAct(P,"reabrir",""); syncProyecto(P); persist(); render(); toast(`${ic("rotate","t")} Grupo reabierto`);
+}
+// Cerrar (liquidar) un grupo. Si es compartido, primero traigo lo último del servidor:
+// puede que alguien haya cargado un gasto o deshecho un pago que todavía no me llegó.
+async function cerrarGrupo(P){
+  if(!P || P.cerrado) return;
+  if(P.remoto && navigator.onLine){ await vaciarCola(); await fetchRemoto(P.id, true); }
+  if(P.cerrado){ toast("Alguien ya lo cerró."); return; }
+  const pend=transferenciasPendientes(P).length;
+  if(pend){ toast(`Todavía ${pend===1?"queda 1 pago":"quedan "+pend+" pagos"} sin marcar. Se puede cerrar cuando esté todo saldado.`,{tipo:"err",ms:4500}); render(); return; }
+  if(!await confirmar({t:`¿Cerrar «${P.n}»?`, txt:"Está todo saldado. Pasa a «Liquidados»"+(P.remoto?" para todos":"")+" y queda en solo lectura. Cualquiera del grupo lo puede reabrir.", ok:"Cerrar grupo"})) return;
+  P.cerrado=true; logAct(P,"cerrar",""); syncProyecto(P); persist(); volver(); toast(`${ic("archive","t")} «${esc(P.n)}» pasó a Liquidados`);
 }
 function renderGrupoTab(){
-  const P=proy(), ro=soloLectura(), yoSel=yoMap[P.id]||"", dis=ro?"disabled":"";
+  const P=proy(), ro=soloLectura(), yoSel=yoMap[P.id]||"", dis=ro?"disabled":"", pendG=P.cerrado?0:transferenciasPendientes(P).length;
   const personas = !P.personas.length ? `<p class="hint" style="margin:0 2px 10px">Todavía no hay nadie. Sumá a los que participan.</p>`
     : P.personas.map(p=>`<div class="person-row">${av(p.id,34)}<div class="flds"><input data-pid="${esc(p.id)}" value="${esc(p.n)}" aria-label="Nombre" ${dis}><input class="alias-in" data-alias="${esc(p.id)}" value="${esc(p.alias||"")}" placeholder="Alias o CBU (opcional)" aria-label="Alias o CBU de ${esc(p.n)}" autocapitalize="none" autocomplete="off" ${dis}></div>${ro?"":`<button class="icon-btn danger" data-delp="${esc(p.id)}" aria-label="Quitar a ${esc(p.n)}" title="Quitar">${ic("trash","sm")}</button>`}</div>`).join("");
   const compartir = P.remoto
@@ -1816,12 +1839,15 @@ function renderGrupoTab(){
 
     <div class="panel"><div class="phead"><p class="ptitle">${ic("archive")}Cerrar o borrar</p></div>
       <div class="btn-list">
-        ${puedeCerrar(P)
-          ? (P.cerrado ? `<button class="btn btn-sec" id="g-reabrir">${ic("rotate","sm")}Reabrir este grupo</button>` : `<button class="btn btn-sec" id="g-cerrar">${ic("archive","sm")}Cerrar grupo (ya está todo saldado)</button>`)
-          : `<p class="hint" style="margin:0 2px 4px">${P.cerrado?"Este grupo lo liquidó quien lo creó.":"El cierre lo maneja quien creó el grupo."}</p>`}
+        ${P.cerrado
+          ? `<button class="btn btn-sec" id="g-reabrir">${ic("rotate","sm")}Reabrir este grupo</button>`
+          : (pendG
+              ? `<button class="btn btn-sec" id="g-cerrar" disabled>${ic("archive","sm")}Cerrar grupo</button>
+                 <p class="hint" style="margin:0 2px 4px">Se puede cerrar cuando esté todo saldado. ${pendG===1?"Queda 1 pago":"Quedan "+pendG+" pagos"} sin marcar en Cuentas.</p>`
+              : `<button class="btn btn-sec" id="g-cerrar">${ic("archive","sm")}Cerrar grupo (ya está todo saldado)</button>`)}
         <button class="btn btn-danger" id="g-borrar">${ic("trash","sm")}Borrar de este celu</button>
       </div>
-      <p class="hint">Cerrarlo lo pasa a «Liquidados» en el Inicio, en modo solo lectura.</p></div>`;
+      <p class="hint">Cerrarlo lo pasa a «Liquidados» en el Inicio${P.remoto?" de todos":""}, en modo solo lectura. ${P.remoto?"Cualquiera del grupo lo puede cerrar o reabrir.":""}</p></div>`;
 
   // Cambios de texto: guardo sin repintar la pantalla (así no te saca del campo siguiente).
   $("g-soy").onchange=e=>{ const v=e.target.value; if(v) yoMap[P.id]=v; else delete yoMap[P.id]; save(KEY_YOMAP,yoMap); toast(`${ic("check","t")} Listo`); };
@@ -1832,11 +1858,7 @@ function renderGrupoTab(){
     if(!await confirmar({t:`¿Borrar «${P.n}»?`, txt:`Se borra de este celu con todos sus gastos.${P.remoto?" Los demás lo siguen teniendo.":""} No se puede deshacer.`, ok:"Borrar", peligro:true})) return;
     st.proyectos=st.proyectos.filter(p=>p.id!==P.id); olvidarRespaldo(P.id); persist(); volver(); toast("Grupo borrado de este celu");
   };
-  if($("g-cerrar")) $("g-cerrar").onclick=async()=>{
-    const pend=transferenciasPendientes().length;
-    if(!await confirmar({t:`¿Cerrar «${P.n}»?`, txt:(pend?`<b>Ojo: quedan ${pend} pago${pend>1?"s":""} sin marcar.</b> `:"")+"Pasa a «Liquidados» en el Inicio y queda en solo lectura. Lo podés reabrir cuando quieras.", ok:"Cerrar grupo"})) return;
-    P.cerrado=true; syncProyecto(P); persist(); volver(); toast(`${ic("archive","t")} «${esc(P.n)}» pasó a Liquidados`);
-  };
+  if($("g-cerrar")) $("g-cerrar").onclick=()=>cerrarGrupo(P);
   if($("g-reabrir")) $("g-reabrir").onclick=()=>reabrir(P);
   if(ro) return;
   $("g-nombre").onchange=()=>{ const v=$("g-nombre").value.trim(); if(v && v!==P.n){ P.n=v; logAct(P,"grupo","«"+v+"»"); syncProyecto(P); persist(); renderHero(); } };

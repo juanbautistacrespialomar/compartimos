@@ -40,8 +40,10 @@ frameworks ni dependencias en tiempo de ejecución.
 - **Exportar a CSV** y **backup/restore** completo en JSON (desde Ajustes).
 
 ### Organización
-- **Grupos liquidados**: se puede "cerrar" un grupo para que no aparezca en el
-  inicio; queda guardado en Ajustes y se puede reabrir cuando haga falta.
+- **Grupos liquidados**: cuando está todo saldado, **cualquier integrante** puede
+  "cerrar" el grupo (desde Cuentas o desde la pestaña Grupo). Pasa a «Liquidados»
+  para todos, en solo lectura, y cualquiera lo puede reabrir. Queda registrado en
+  la actividad quién lo cerró o reabrió.
 
 ---
 
