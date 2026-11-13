@@ -116,7 +116,13 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{ou
 .hero.no-foto{background:linear-gradient(135deg,#4f46e5 0%,#6d5df0 45%,#2b3a8f 100%)}
 .hero-media{position:relative;display:flex;justify-content:center;align-items:center;padding-top:max(env(safe-area-inset-top),12px);min-height:calc(max(env(safe-area-inset-top),12px) + 64px)}
 .hero-media img{display:block;max-width:100%;max-height:300px;width:auto;height:auto;object-fit:contain}
-.hero.compact .hero-media img{max-height:200px}
+/* Con foto: ocupa todo el ancho con alto fijo y se recorta (cover), sea vertical u horizontal.
+   Arriba y abajo un degradé: arriba para que se lean los botones, abajo para fundirse con el título. */
+.hero:not(.no-foto) .hero-media{height:calc(max(env(safe-area-inset-top),12px) + 190px);padding-top:0;overflow:hidden}
+.hero.compact:not(.no-foto) .hero-media{height:calc(max(env(safe-area-inset-top),12px) + 130px)}
+.hero:not(.no-foto) .hero-media img{position:absolute;inset:0;width:100%;height:100%;max-width:none;max-height:none;object-fit:cover;object-position:center 35%}
+.hero:not(.no-foto) .hero-media::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(10,13,31,.45) 0%,rgba(10,13,31,0) 32%,rgba(26,30,74,0) 58%,#1a1e4a 100%)}
+.hero:not(.no-foto) .hero-foot{margin-top:-34px}
 .hero.no-foto .hero-media img{display:none}
 .hero.no-foto:not(.compact) .hero-media{min-height:calc(max(env(safe-area-inset-top),12px) + 110px)}
 .hero-top{position:absolute;z-index:1;left:0;right:0;top:calc(max(env(safe-area-inset-top),12px) + 10px);display:flex;justify-content:space-between;align-items:center;padding:0 14px;pointer-events:none}
@@ -142,16 +148,16 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{ou
 
 .kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px}
 /* El total va solo en el primer renglón, a lo ancho: así entra completo aunque sean millones. */
-.kpi.total{grid-column:1/-1;flex-direction:row;justify-content:space-between;align-items:flex-end;gap:12px;padding:12px 14px}
-.kpi.total .tot{min-width:0}
-.kpi.total .val{font-size:clamp(22px,7vw,28px);margin-top:2px}
-.kpi.total .sub{flex:none;margin:0 0 4px}
-.kpi{display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch;background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:11px 12px;box-shadow:var(--sh-1);text-align:left;min-width:0;font:inherit;color:var(--txt)}
+.kpi.total{grid-column:1/-1;padding:11px 14px 10px}
+.kpi.total .tot{min-width:0;max-width:100%;display:flex;flex-direction:column;align-items:center}
+.kpi.total .val{font-size:clamp(28px,9vw,36px);letter-spacing:-.8px;margin-top:3px}
+.kpi.total .sub{flex:none;margin-top:3px}
+.kpi{display:flex;flex-direction:column;justify-content:center;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:10px 10px 9px;box-shadow:var(--sh-1);text-align:center;line-height:1.2;min-width:0;max-width:100%;font:inherit;color:var(--txt)}
 button.kpi{cursor:pointer;transition:transform .12s ease}
 button.kpi:active{transform:scale(.97)}
 .kpi .lbl{font-size:var(--fs-xs);color:var(--muted);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kpi .val{font-size:clamp(14px,4.3vw,18px);font-weight:800;letter-spacing:-.3px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kpi .sub{font-size:var(--fs-xs);color:var(--faint);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi .val{max-width:100%;font-size:clamp(19px,6vw,24px);line-height:1.1;font-weight:800;letter-spacing:-.5px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi .sub{font-size:var(--fs-xs);color:var(--faint);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* ============================ COMPONENTES ============================ */
 /* Jerarquía: .btn-primary = UNA acción principal por pantalla · .btn-sec = secundaria
@@ -441,6 +447,39 @@ body.inicio #toasts{bottom:calc(env(safe-area-inset-bottom) + 28px)}
 .person-row input.alias-in{font-size:var(--fs-sm);font-family:var(--mono)}
 .person-row .icon-btn{margin-top:4px;background:var(--card)}
 .addrow{display:flex;gap:8px;margin-top:4px}
+.sec-t{display:flex;align-items:center;justify-content:space-between;font-size:var(--fs-xs);font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin:18px 6px 7px}
+.sec-t:first-child{margin-top:4px}
+.sec-t .cnt{text-transform:none;letter-spacing:0}
+.lista{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-1);overflow:hidden;margin-bottom:6px}
+.lrow{display:flex;align-items:center;gap:12px;width:100%;min-height:58px;padding:10px 14px;background:none;border:none;border-top:1px solid var(--line);font:inherit;color:var(--txt);text-align:left;cursor:pointer}
+.lrow:first-child{border-top:none}
+button.lrow:active{background:var(--card2)}
+.lrow:disabled{cursor:default}
+.lrow .lic{width:34px;height:34px;border-radius:10px;flex:none;display:flex;align-items:center;justify-content:center;background:var(--accent-bg);color:var(--accent-ink)}
+.lrow .lic.neg{background:rgba(220,38,38,.12);color:var(--neg)}
+.lrow .lic.warn{background:rgba(217,119,6,.14);color:var(--warn)}
+.lrow .lic.mut{background:var(--card2);color:var(--faint)}
+.lrow .lthumb{width:34px;height:34px;border-radius:10px;flex:none;background-size:cover;background-position:center 35%}
+.lrow .av{--s:34px;flex:none}
+.lrow .lt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.lrow .lt b{font-weight:650;font-size:var(--fs-md);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lrow .lt small{font-size:var(--fs-xs);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lrow .lt small.mono{font-family:var(--mono)}
+.lrow .lt small.faint{color:var(--faint)}
+.lrow .lv{flex:none;color:var(--muted);font-size:var(--fs-sm);max-width:40%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lrow .chev{flex:none;color:var(--faint);display:flex}
+.lrow.neg .lt b{color:var(--neg)}
+.lrow:disabled .lt b{color:var(--muted)}
+.lista .addrow{margin:0;padding:10px 14px;border-top:1px solid var(--line)}
+.lista .addrow input{background:var(--card2)}
+.inv{display:flex;align-items:center;gap:8px;padding:12px 14px}
+.inv .invt{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.inv .invt small{font-size:var(--fs-xs);font-weight:600;color:var(--muted)}
+.inv .code{font-family:var(--mono);font-size:var(--fs-xl);font-weight:800;letter-spacing:2px}
+.foot-note{text-align:center;font-size:var(--fs-xs);color:var(--faint);margin:14px 10px 4px;line-height:1.45}
+.sh-foto{width:100%;aspect-ratio:2/1;border-radius:var(--r-md);background:var(--card2) center 35%/cover no-repeat;display:flex;align-items:center;justify-content:center;color:var(--faint);margin:4px 0 10px}
+.sh-lbl{display:block;font-size:var(--fs-xs);font-weight:700;color:var(--muted);margin:12px 2px 6px}
+.sh-acts{display:flex;flex-direction:column;gap:8px;margin-top:16px}
 .addrow .icon-btn{width:47px;height:47px;background:var(--accent-fill);color:#fff;border-radius:var(--r-md)}
 .listrow{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--card2);border-radius:var(--r-md);padding:8px 8px 8px 13px;margin-bottom:8px}
 .listrow span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -1799,90 +1838,147 @@ async function cerrarGrupo(P){
   if(!await confirmar({t:`¿Cerrar «${P.n}»?`, txt:"Está todo saldado. Pasa a «Liquidados»"+(P.remoto?" para todos":"")+" y queda en solo lectura. Cualquiera del grupo lo puede reabrir.", ok:"Cerrar grupo"})) return;
   P.cerrado=true; logAct(P,"cerrar",""); syncProyecto(P); persist(); volver(); toast(`${ic("archive","t")} «${esc(P.n)}» pasó a Liquidados`);
 }
+/* La pestaña Grupo es una lista tipo "Ajustes": cada fila muestra lo justo y, al tocarla,
+   abre una hoja desde abajo para editar. Así no hay 15 campos abiertos a la vez. */
 function renderGrupoTab(){
-  const P=proy(), ro=soloLectura(), yoSel=yoMap[P.id]||"", dis=ro?"disabled":"", pendG=P.cerrado?0:transferenciasPendientes(P).length;
-  const personas = !P.personas.length ? `<p class="hint" style="margin:0 2px 10px">Todavía no hay nadie. Sumá a los que participan.</p>`
-    : P.personas.map(p=>`<div class="person-row">${av(p.id,34)}<div class="flds"><input data-pid="${esc(p.id)}" value="${esc(p.n)}" aria-label="Nombre" ${dis}><input class="alias-in" data-alias="${esc(p.id)}" value="${esc(p.alias||"")}" placeholder="Alias o CBU (opcional)" aria-label="Alias o CBU de ${esc(p.n)}" autocapitalize="none" autocomplete="off" ${dis}></div>${ro?"":`<button class="icon-btn danger" data-delp="${esc(p.id)}" aria-label="Quitar a ${esc(p.n)}" title="Quitar">${ic("trash","sm")}</button>`}</div>`).join("");
-  const compartir = P.remoto
-    ? `<p class="hint" style="margin:0 2px 8px">Dictales el código o mandales el link. Lo cargan en «Unirme» desde el Inicio.</p>
-       <div class="code-box"><span class="code">${esc(P.id)}</span><button class="btn btn-sec btn-sm" id="copiarCode">${ic("copy","sm")}Copiar</button></div>
-       <div class="acts2" style="margin-top:4px"><button class="btn btn-sec" id="copiarLink">${ic("link","sm")}Copiar link</button><button class="btn btn-primary" id="compartirTodo">${ic("share","sm")}Compartir</button></div>`
-    : `<p class="hint" style="margin:0 2px 10px">Hoy este grupo vive solo en tu celu. Compartilo para que los demás carguen gastos desde el suyo.</p>
-       <button class="btn btn-primary btn-block" id="compartirBtn" ${dis}>${ic("link","sm")}Compartir con el grupo</button>`;
+  const P=proy(), ro=soloLectura(), yoSel=yoMap[P.id]||"", pendG=P.cerrado?0:transferenciasPendientes(P).length;
+  const chev=`<span class="chev">${ic("chevRight","sm")}</span>`;
+  const yoId=miPersonaId(P);
+  const yoTxt = yoSel==="-" ? "No estoy" : (yoId ? pName(yoId,P) : "Sin elegir");
+
+  const filasPersonas = P.personas.map(p=>`
+    <button class="lrow" data-per="${esc(p.id)}" ${ro?"disabled":""}>${av(p.id,34)}
+      <span class="lt"><b>${esc(p.n)}${p.id===yoId?` <small style="display:inline;color:var(--accent-ink);font-weight:700">· vos</small>`:""}</b>
+        ${p.alias?`<small class="mono">${esc(p.alias)}</small>`:`<small class="faint">${ro?"Sin alias":"Agregar alias o CBU"}</small>`}</span>${ro?"":chev}</button>`).join("");
+  const personas = `<div class="lista">
+      ${filasPersonas || `<div class="lrow" style="cursor:default"><span class="lic mut">${ic("users","sm")}</span><span class="lt"><b>Todavía no hay nadie</b><small>Sumá a los que participan</small></span></div>`}
+      ${ro?"":`<div class="addrow"><input id="np" type="text" placeholder="Agregar persona" enterkeyhint="done" autocomplete="off"><button class="icon-btn" id="addp" aria-label="Agregar persona">${ic("plus")}</button></div>`}
+    </div>`;
+
+  const bloqueInv = P.remoto
+    ? `<div class="lista"><div class="inv"><span class="invt"><small>Código del grupo</small><span class="code">${esc(P.id)}</span></span>
+         <button class="icon-btn" id="copiarCode" aria-label="Copiar código">${ic("copy","sm")}</button>
+         <button class="icon-btn" id="copiarLink" aria-label="Copiar link">${ic("link","sm")}</button>
+         <button class="btn btn-primary btn-sm" id="compartirTodo">${ic("share","sm")}Invitar</button></div></div>`
+    : `<div class="lista"><button class="lrow" id="compartirBtn" ${ro?"disabled":""}><span class="lic">${ic("link","sm")}</span>
+         <span class="lt"><b>Compartir con el grupo</b><small>Hoy vive solo en tu celu</small></span>${chev}</button></div>`;
+
+  let cierre;
+  if(P.cerrado) cierre=`<button class="lrow" id="g-reabrir"><span class="lic warn">${ic("rotate","sm")}</span><span class="lt"><b>Reabrir grupo</b><small>Vuelve a estar activo${P.remoto?" para todos":""}</small></span>${chev}</button>`;
+  else if(pendG) cierre=`<button class="lrow" id="g-cerrar" disabled><span class="lic mut">${ic("archive","sm")}</span><span class="lt"><b>Cerrar grupo</b><small>${pendG===1?"Falta 1 pago":"Faltan "+pendG+" pagos"} por marcar en Cuentas</small></span></button>`;
+  else cierre=`<button class="lrow" id="g-cerrar"><span class="lic">${ic("archive","sm")}</span><span class="lt"><b>Cerrar grupo</b><small>Está todo saldado</small></span>${chev}</button>`;
+
   $("content").innerHTML = (ro?roBanner("editarlo"):"") +
-   `<div class="panel"><div class="phead"><p class="ptitle">${ic("users")}Personas <span class="cnt">${P.personas.length}</span></p></div>
-      ${personas}
-      ${ro?"":`<div class="addrow"><input id="np" type="text" placeholder="Nombre de alguien más" enterkeyhint="done" autocomplete="off"><button class="icon-btn" id="addp" aria-label="Agregar persona">${ic("plus")}</button></div>`}
-      <p class="hint">El alias o CBU aparece en Cuentas, al lado de cada transferencia, para copiarlo de un toque.</p></div>
+   `<p class="sec-t">Personas <span class="cnt">${P.personas.length}</span></p>${personas}
+    <p class="sec-t">Invitar</p>${bloqueInv}
+    <p class="sec-t">Ajustes</p>
+    <div class="lista">
+      <button class="lrow" id="g-portada">${P.foto?`<span class="lthumb" style="background-image:url('${P.foto}')"></span>`:`<span class="lic">${ic("image","sm")}</span>`}
+        <span class="lt"><b>Nombre y foto</b><small>${esc(P.n)}</small></span>${chev}</button>
+      <button class="lrow" id="g-soy" ${!P.personas.length?"disabled":""}><span class="lic">${ic("user","sm")}</span>
+        <span class="lt"><b>Vos en este grupo</b><small>Para ver tu parte y tu saldo</small></span><span class="lv">${esc(yoTxt)}</span>${chev}</button>
+      <button class="lrow" id="g-export"><span class="lic">${ic("download","sm")}</span>
+        <span class="lt"><b>Exportar resumen</b><small>Imagen, texto o Excel</small></span>${chev}</button>
+    </div>
+    <div class="lista" style="margin-top:12px">
+      ${cierre}
+      <button class="lrow neg" id="g-borrar"><span class="lic neg">${ic("trash","sm")}</span><span class="lt"><b>Borrar de este celu</b><small>${P.remoto?"Los demás lo siguen teniendo":"Se pierde todo lo cargado"}</small></span></button>
+    </div>`;
 
-    <div class="panel"><div class="phead"><p class="ptitle">${ic("share")}Compartir</p></div>${compartir}</div>
 
-    <div class="panel"><div class="phead"><p class="ptitle">${ic("image")}Nombre y portada</p></div>
-      <input id="g-nombre" value="${esc(P.n)}" aria-label="Nombre del grupo" ${dis}>
-      <div class="foto-edit" style="margin-top:12px"><div class="foto-prev" style="${P.foto?`background-image:url('${P.foto}')`:""}">${P.foto?"":ic("image","lg")}</div>
-        <div style="display:flex;flex-direction:column;gap:7px">
-          <button class="btn btn-sec btn-sm" id="foto-btn" ${dis}>${ic("camera","sm")}${P.foto?"Cambiar foto":"Elegir foto"}</button>
-          ${P.foto&&!ro?`<button class="btn btn-text btn-sm" id="foto-del" style="color:var(--neg)">${ic("x","sm")}Quitar foto</button>`:""}
-        </div><input type="file" id="foto-file" accept="image/*" style="display:none"></div>
-      ${P.remoto?`<p class="hint">La foto la ven todos los del grupo.</p>`:""}</div>
-
-    <div class="panel"><div class="phead"><p class="ptitle">${ic("user")}Vos en este grupo</p></div>
-      <select id="g-soy" ${!P.personas.length?"disabled":""} aria-label="Quién sos en este grupo"><option value="">Reconocerme por mi nombre</option>${P.personas.map(p=>`<option value="${esc(p.id)}" ${yoSel===p.id?"selected":""}>Soy ${esc(p.n)}</option>`).join("")}<option value="-" ${yoSel==="-"?"selected":""}>No estoy en este grupo</option></select>
-      <p class="hint">Sirve para mostrarte tu parte y qué te toca pagar o cobrar. Queda guardado solo en este celu.</p></div>
-
-    <div class="panel"><div class="phead"><p class="ptitle">${ic("download")}Exportar</p></div>
-      <div class="btn-list">
-        <button class="btn btn-sec" id="g-foto">${ic("image","sm")}Resumen como imagen (para WhatsApp)</button>
-        <button class="btn btn-sec" id="g-texto">${ic("copy","sm")}Resumen como texto (alias copiables)</button>
-        <button class="btn btn-sec" id="g-csv">${ic("file","sm")}Planilla para Excel (CSV)</button>
-      </div></div>
-
-    <div class="panel"><div class="phead"><p class="ptitle">${ic("archive")}Cerrar o borrar</p></div>
-      <div class="btn-list">
-        ${P.cerrado
-          ? `<button class="btn btn-sec" id="g-reabrir">${ic("rotate","sm")}Reabrir este grupo</button>`
-          : (pendG
-              ? `<button class="btn btn-sec" id="g-cerrar" disabled>${ic("archive","sm")}Cerrar grupo</button>
-                 <p class="hint" style="margin:0 2px 4px">Se puede cerrar cuando esté todo saldado. ${pendG===1?"Queda 1 pago":"Quedan "+pendG+" pagos"} sin marcar en Cuentas.</p>`
-              : `<button class="btn btn-sec" id="g-cerrar">${ic("archive","sm")}Cerrar grupo (ya está todo saldado)</button>`)}
-        <button class="btn btn-danger" id="g-borrar">${ic("trash","sm")}Borrar de este celu</button>
-      </div>
-      <p class="hint">Cerrarlo lo pasa a «Liquidados» en el Inicio${P.remoto?" de todos":""}, en modo solo lectura. ${P.remoto?"Cualquiera del grupo lo puede cerrar o reabrir.":""}</p></div>`;
-
-  // Cambios de texto: guardo sin repintar la pantalla (así no te saca del campo siguiente).
-  $("g-soy").onchange=e=>{ const v=e.target.value; if(v) yoMap[P.id]=v; else delete yoMap[P.id]; save(KEY_YOMAP,yoMap); toast(`${ic("check","t")} Listo`); };
-  $("g-foto").onclick=exportarFoto;
-  $("g-texto").onclick=()=>compartirTexto();
-  $("g-csv").onclick=exportar;
+  // Fijas (andan también en solo lectura)
+  $("g-export").onclick=hojaExportar;
+  $("g-portada").onclick=()=>hojaPortada(P,ro);
+  if(!$("g-soy").disabled) $("g-soy").onclick=()=>hojaSoy(P);
   $("g-borrar").onclick=async()=>{
     if(!await confirmar({t:`¿Borrar «${P.n}»?`, txt:`Se borra de este celu con todos sus gastos.${P.remoto?" Los demás lo siguen teniendo.":""} No se puede deshacer.`, ok:"Borrar", peligro:true})) return;
     st.proyectos=st.proyectos.filter(p=>p.id!==P.id); olvidarRespaldo(P.id); persist(); volver(); toast("Grupo borrado de este celu");
   };
-  if($("g-cerrar")) $("g-cerrar").onclick=()=>cerrarGrupo(P);
+  if($("g-cerrar") && !$("g-cerrar").disabled) $("g-cerrar").onclick=()=>cerrarGrupo(P);
   if($("g-reabrir")) $("g-reabrir").onclick=()=>reabrir(P);
-  if(ro) return;
-  $("g-nombre").onchange=()=>{ const v=$("g-nombre").value.trim(); if(v && v!==P.n){ P.n=v; logAct(P,"grupo","«"+v+"»"); syncProyecto(P); persist(); renderHero(); } };
-  $("foto-btn").onclick=()=>$("foto-file").click();
-  $("foto-file").onchange=e=>{ const f=e.target.files[0]; if(!f) return; comprimirImagen(f,url=>{ P.foto=url; logAct(P,"foto",""); syncProyecto(P); persist(); render(); }); e.target.value=""; };
-  if($("foto-del")) $("foto-del").onclick=()=>{ P.foto=null; logAct(P,"foto",""); syncProyecto(P); persist(); render(); };
-  $("content").querySelectorAll("[data-pid]").forEach(el=>el.onchange=()=>{ const p=persona(el.dataset.pid,P); const nv=el.value.trim(); if(p && nv && nv!==p.n){ p.n=nv; logAct(P,"panedit",p.n); syncPersona(P,p,true); persist(); } });
-  $("content").querySelectorAll("[data-alias]").forEach(el=>el.onchange=()=>{ const p=persona(el.dataset.alias,P); const nv=el.value.trim(); if(p && nv!==(p.alias||"")){ p.alias=nv; syncPersona(P,p,true); persist(); toast(`${ic("check","t")} Alias de ${esc(p.n)} guardado`); } });
-  $("content").querySelectorAll("[data-delp]").forEach(b=>b.onclick=async()=>{
-    const id=b.dataset.delp, pb=persona(id,P); if(!pb) return;
-    const usado=P.gastos.some(g=>g.pagador===id||(g.part||[]).includes(id)) || (P.liquidaciones||[]).some(l=>l.de===id||l.a===id);
-    if(usado && !await confirmar({t:`¿Quitar a ${pb.n}?`, txt:"Aparece en gastos o pagos: se la saca de todos y las cuentas se recalculan.", ok:"Quitar", peligro:true})) return;
-    logAct(P,"pandel",pb.n); sync(P,"DELETE","/p/"+P.id+"/persona/"+id);
-    P.personas=P.personas.filter(x=>x.id!==id);
-    P.gastos.forEach(g=>{ g.part=(g.part||[]).filter(x=>x!==id); });
-    P.liquidaciones=(P.liquidaciones||[]).filter(l=>l.de!==id&&l.a!==id);
-    persist(); render();
-  });
-  const add=()=>{ const v=$("np").value.trim(); if(!v) return; const np={id:newId(), n:v, alias:""}; P.personas.push(np); logAct(P,"panadd",np.n); syncPersona(P,np,false); persist(); render(); setTimeout(()=>{ const n=$("np"); if(n) n.focus(); },0); };
-  $("addp").onclick=add; $("np").addEventListener("keydown",e=>{ if(e.key==="Enter") add(); });
-  if($("compartirBtn")) $("compartirBtn").onclick=compartirProyecto;
   if($("copiarLink")) $("copiarLink").onclick=()=>copiar(linkGrupo(P),"Link copiado");
   if($("copiarCode")) $("copiarCode").onclick=()=>copiar(P.id,"Código copiado");
   if($("compartirTodo")) $("compartirTodo").onclick=()=>invitar(P);
+  if(ro) return;
+  $("content").querySelectorAll("[data-per]").forEach(b=>b.onclick=()=>hojaPersona(P,b.dataset.per));
+  const add=()=>{ const v=$("np").value.trim(); if(!v) return; const np={id:newId(), n:v, alias:""}; P.personas.push(np); logAct(P,"panadd",np.n); syncPersona(P,np,false); persist(); render(); setTimeout(()=>{ const n=$("np"); if(n) n.focus(); },0); };
+  $("addp").onclick=add; $("np").addEventListener("keydown",e=>{ if(e.key==="Enter") add(); });
+  if($("compartirBtn")) $("compartirBtn").onclick=compartirProyecto;
+}
+// Editar una persona: nombre, alias/CBU y quitarla.
+function hojaPersona(P,id){
+  const p=persona(id,P); if(!p) return;
+  abrirSheet(p.n, `
+    <label class="sh-lbl" for="hp-n">Nombre</label><input id="hp-n" value="${esc(p.n)}" autocomplete="off">
+    <label class="sh-lbl" for="hp-a">Alias o CBU</label><input id="hp-a" value="${esc(p.alias||"")}" placeholder="Opcional" autocapitalize="none" autocomplete="off" style="font-family:var(--mono)">
+    <p class="hint">Aparece en Cuentas al lado de cada transferencia, para copiarlo de un toque.</p>
+    <div class="sh-acts"><button class="btn btn-primary btn-block" id="hp-ok">${ic("check","sm")}Guardar</button>
+      <button class="btn btn-text btn-block" id="hp-del" style="color:var(--neg)">${ic("trash","sm")}Quitar del grupo</button></div>`, ()=>{
+    $("hp-ok").onclick=()=>{
+      const nv=$("hp-n").value.trim(), na=$("hp-a").value.trim();
+      if(!nv){ $("hp-n").focus(); return; }
+      let cambio=false;
+      if(nv!==p.n){ p.n=nv; logAct(P,"panedit",p.n); cambio=true; }
+      if(na!==(p.alias||"")){ p.alias=na; cambio=true; }
+      if(cambio){ syncPersona(P,p,true); persist(); render(); toast(`${ic("check","t")} Guardado`); }
+      cerrarSheet();
+    };
+    $("hp-del").onclick=async()=>{
+      const usado=P.gastos.some(g=>g.pagador===id||(g.part||[]).includes(id)) || (P.liquidaciones||[]).some(l=>l.de===id||l.a===id);
+      if(!await confirmar({t:`¿Quitar a ${p.n}?`, txt:usado?"Aparece en gastos o pagos: se la saca de todos y las cuentas se recalculan.":"Se saca del grupo.", ok:"Quitar", peligro:true})) return;
+      logAct(P,"pandel",p.n); sync(P,"DELETE","/p/"+P.id+"/persona/"+id);
+      P.personas=P.personas.filter(x=>x.id!==id);
+      P.gastos.forEach(g=>{ g.part=(g.part||[]).filter(x=>x!==id); });
+      P.liquidaciones=(P.liquidaciones||[]).filter(l=>l.de!==id&&l.a!==id);
+      persist(); cerrarSheet(); render();
+    };
+  });
+}
+// Nombre y foto del grupo. La vista previa tiene la misma proporción que el encabezado.
+function hojaPortada(P,ro){
+  const pintar=()=>{
+    const f=$("hf-prev"); if(!f) return;
+    f.style.backgroundImage=P.foto?`url('${P.foto}')`:""; f.innerHTML=P.foto?"":ic("image","lg");
+    $("hf-btn").innerHTML=ic("camera","sm")+(P.foto?"Cambiar foto":"Elegir foto");
+    $("hf-del").style.display=P.foto?"":"none";
+  };
+  abrirSheet("Nombre y foto", `
+    <label class="sh-lbl" for="hf-n">Nombre del grupo</label><input id="hf-n" value="${esc(P.n)}" autocomplete="off" ${ro?"disabled":""}>
+    <label class="sh-lbl">Foto de portada</label><div class="sh-foto" id="hf-prev"></div>
+    ${ro?"":`<div class="acts2" style="margin-top:0"><button class="btn btn-sec" id="hf-btn"></button><button class="btn btn-text" id="hf-del" style="color:var(--neg)">${ic("x","sm")}Quitar</button></div>`}
+    <input type="file" id="hf-file" accept="image/*" style="display:none">
+    <p class="hint">Se recorta para llenar el encabezado.${P.remoto?" La ven todos los del grupo.":""}</p>
+    ${ro?"":`<div class="sh-acts"><button class="btn btn-primary btn-block" id="hf-ok">${ic("check","sm")}Listo</button></div>`}`, ()=>{
+    if(ro){ const f=$("hf-prev"); f.style.backgroundImage=P.foto?`url('${P.foto}')`:""; f.innerHTML=P.foto?"":ic("image","lg"); return; }
+    pintar();
+    $("hf-btn").onclick=()=>$("hf-file").click();
+    $("hf-file").onchange=e=>{ const f=e.target.files[0]; if(!f) return; comprimirImagen(f,url=>{ P.foto=url; logAct(P,"foto",""); syncProyecto(P); persist(); pintar(); render(); }); e.target.value=""; };
+    $("hf-del").onclick=()=>{ P.foto=null; logAct(P,"foto",""); syncProyecto(P); persist(); pintar(); render(); };
+    $("hf-ok").onclick=()=>{ const v=$("hf-n").value.trim(); if(v && v!==P.n){ P.n=v; logAct(P,"grupo","«"+v+"»"); syncProyecto(P); persist(); render(); } cerrarSheet(); };
+  });
+}
+// Quién soy en este grupo: lista para tocar (queda solo en este celu).
+function hojaSoy(P){
+  const sel=yoMap[P.id]||"";
+  const fila=(v,cont,on)=>`<button class="lrow" data-soy="${esc(v)}">${cont}<span class="chev" style="color:var(--accent-ink)">${on?ic("check","sm"):""}</span></button>`;
+  abrirSheet("Vos en este grupo", `<div class="lista" style="margin-top:4px">
+      ${P.personas.map(p=>fila(p.id, `${av(p.id,34)}<span class="lt"><b>Soy ${esc(p.n)}</b></span>`, sel===p.id)).join("")}
+      ${fila("", `<span class="lic">${ic("user","sm")}</span><span class="lt"><b>Reconocerme por mi nombre</b><small>${esc((YO&&YO.nombre)||"Tu nombre del perfil")}</small></span>`, sel==="")}
+      ${fila("-", `<span class="lic mut">${ic("x","sm")}</span><span class="lt"><b>No estoy en este grupo</b></span>`, sel==="-")}
+    </div><p class="hint">Sirve para mostrarte tu parte y qué te toca pagar o cobrar. Queda guardado solo en este celu.</p>`, body=>{
+    body.querySelectorAll("[data-soy]").forEach(b=>b.onclick=()=>{ const v=b.dataset.soy; if(v) yoMap[P.id]=v; else delete yoMap[P.id]; save(KEY_YOMAP,yoMap); cerrarSheet(); render(); toast(`${ic("check","t")} Listo`); });
+  });
+}
+function hojaExportar(){
+  abrirSheet("Exportar resumen", `<div class="lista" style="margin-top:4px">
+      <button class="lrow" id="ex-foto"><span class="lic">${ic("image","sm")}</span><span class="lt"><b>Imagen</b><small>Para mandar por WhatsApp</small></span></button>
+      <button class="lrow" id="ex-txt"><span class="lic">${ic("copy","sm")}</span><span class="lt"><b>Texto</b><small>Con los alias para copiar</small></span></button>
+      <button class="lrow" id="ex-csv"><span class="lic">${ic("file","sm")}</span><span class="lt"><b>Planilla para Excel</b><small>Archivo CSV con todos los gastos</small></span></button>
+    </div>`, ()=>{
+    $("ex-foto").onclick=()=>{ cerrarSheet(); exportarFoto(); };
+    $("ex-txt").onclick=()=>{ cerrarSheet(); compartirTexto(); };
+    $("ex-csv").onclick=()=>{ cerrarSheet(); exportar(); };
+  });
 }
 // Invitar: si el grupo ya está compartido, manda código + link; si no, te lleva a compartirlo.
 async function invitar(P){
